@@ -12,16 +12,11 @@ Developed as a term project for the **Web Programming** course.
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
 - [Project Architecture](#-project-architecture)
-- [Getting Started with Docker](#-getting-started-with-docker)
-  - [Prerequisites](#prerequisites)
-  - [Quick Start](#quick-start)
-  - [Initial Setup (Migrations & Superuser)](#initial-setup-migrations--superuser)
-- [Local Development (Without Docker)](#-local-development-without-docker)
-- [Environment Variables](#-environment-variables)
-- [Database & Data Persistence](#-database--data-persistence)
+- [Implemented Routes](#-implemented-routes)
+- [Local Development](#-local-development)
 - [Semester Roadmap](#-semester-roadmap)
 - [Useful Commands](#-useful-commands)
-- [License & Academic Integrity](#-license--academic-integrity)
+
 
 ---
 
@@ -69,7 +64,9 @@ alumni-portal/
 │   ├── __init__.py
 │   ├── asgi.py
 │   ├── settings.py
-│   ├── urls.py
+│   ├── tests.py           # Unit tests
+│   ├── urls.py            # URL routing configurations
+│   ├── views.py           # Route views & handlers
 │   └── wsgi.py
 ├── accounts/              # User profiles, authentication & roles
 ├── directory/             # Alumni directory & search functionality
@@ -78,10 +75,62 @@ alumni-portal/
 ├── static/                # Static assets (CSS, JS, images)
 ├── media/                 # User-uploaded files (avatars, resumes)
 ├── templates/             # HTML templates
-├── .dockerignore
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
+│   ├── index.html         # Main landing page & live route tester
+│   └── about.html         # About page
 ├── manage.py
 ├── README.md
 └── requirements.txt
+```
+
+---
+
+## 🚦 Implemented Routes
+
+| Method | Route / Pattern | View Handler | Description | Example / Return Value |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/` | `home` | Landing page | Renders `templates/index.html` |
+| `GET` | `/about/` | `about` | About page | Renders `templates/about.html` |
+| `GET` | `/hello/` | `hello` | Static route | `"Hello, World!"` |
+| `GET` | `/hello/<str:name>/` | `hello` | Dynamic route parameter | `/hello/Ahmet/` ➔ `"Hello, Ahmet!"` |
+| `GET` | `/sum/<int:num1>/<int:num2>/` | `calculate_sum` | Dynamic integer parameters | `/sum/15/25/` ➔ `"40"` |
+
+---
+
+## 💻 Local Development
+
+### 1. Prerequisites
+- Python 3.11+
+- Virtual environment (`venv`)
+
+### 2. Setup & Run
+
+```bash
+# 1. Activate virtual environment
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Apply database migrations
+python manage.py migrate
+
+# 4. Start the development server
+python manage.py runserver
+```
+
+Visit **`http://localhost:8000/`** in your browser.
+
+---
+
+## 🛠️ Useful Commands
+
+```bash
+# Run unit tests
+python manage.py test core
+
+# Check project configuration
+python manage.py check
+
+# Create a superuser / admin
+python manage.py createsuperuser
+```

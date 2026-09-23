@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hakkımızda | Alumni Portal</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #475569;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.25rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a.active, .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 3.5rem 2rem 4.5rem;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+        }
+
+        /* Content Container */
+        .main-container {
+            max-width: 900px;
+            margin: -2.5rem auto 3rem;
+            padding: 0 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 2.25rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card p {
+            color: var(--secondary);
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        /* Feature List */
+        .features-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .feature-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+        }
+
+        .feature-item strong {
+            display: block;
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .feature-item span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Tech Badges */
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 0.75rem;
+        }
+
+        .tech-badge {
+            background: #eff6ff;
+            color: var(--primary);
+            border: 1px solid #bfdbfe;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Footer */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                🎓 Alumni Portal
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Ana Sayfa</a></li>
+                <li><a href="/about/" class="active">Hakkımızda</a></li>
+                <li><a href="/#routes">Aktif Rotalar</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>Hakkımızda</h1>
+            <p>Alumni Portal projesinin amacı, vizyonu ve teknik altyapısı hakkında bilgiler.</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-container">
+
+        <!-- Project Overview -->
+        <article class="card">
+            <h2>🎯 Projenin Amacı ve Misyonu</h2>
+            <p>
+                <strong>Alumni Portal</strong>, üniversite mezunları (alumni) ile mevcut öğrenciler ve akademik kadro arasındaki iletişimi güçlendirmek amacıyla geliştirilmektedir.
+            </p>
+            <p>
+                Geleneksel mezun takip sistemlerinin ötesinde; mezunların iş hayatındaki tecrübelerini genç nesillere aktarabileceği, staj ve iş ilanlarının paylaşılabileceği yaşayan bir ekosistem hedeflenmektedir.
+            </p>
+
+            <ul class="features-list">
+                <li class="feature-item">
+                    <strong>👥 Mezun İletişim Ağı</strong>
+                    <span>Dönem, fakülte, şirket veya şehre göre filtrelenebilir mezun dizini.</span>
+                </li>
+                <li class="feature-item">
+                    <strong>💼 Kariyer Köprüsü</strong>
+                    <span>Mezunların kendi kurumlarındaki açık pozisyonları öğrencilere ulaştırması.</span>
+                </li>
+                <li class="feature-item">
+                    <strong>🤝 Mentörlük</strong>
+                    <span>Öğrencilerin kariyer yolculuklarında tecrübeli mezunlardan birebir rehberlik alması.</span>
+                </li>
+                <li class="feature-item">
+                    <strong>📅 Etkinlikler & Seminerler</strong>
+                    <span>Bölüm buluşmaları, mezuniyet yıldönümleri ve kariyer günleri yönetimi.</span>
+                </li>
+            </ul>
+        </article>
+
+        <!-- Tech Stack -->
+        <article class="card">
+            <h2>🛠️ Teknik Altyapı & Mimari</h2>
+            <p>
+                Bu proje, <strong>Web Programlama</strong> dersi kapsamında modern web geliştirme pratikleri ve MVC (Model-View-Template) mimarisi esas alınarak geliştirilmektedir.
+            </p>
+            
+            <div class="tech-tags">
+                <span class="tech-badge">Python 3.13</span>
+                <span class="tech-badge">Django 6.1</span>
+                <span class="tech-badge">SQLite Veritabanı</span>
+                <span class="tech-badge">Django Templates</span>
+                <span class="tech-badge">Docker & Compose</span>
+            </div>
+        </article>
+
+        <!-- Navigation Button -->
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="/" class="btn-back">← Ana Sayfaya Dön</a>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p><strong>Alumni Portal</strong> &bull; Web Programming Dönem Projesi</p>
+        <p style="margin-top: 0.25rem; font-size: 0.8rem;">Geliştirici: Ahmet Baha Büyükadem &bull; Django & SQLite</p>
+    </footer>
+
+</body>
+</html>

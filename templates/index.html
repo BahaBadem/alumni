@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Portal | Ana Sayfa</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #475569;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --accent: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.25rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .badge-status {
+            background: #dbeafe;
+            color: var(--primary);
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 4rem 2rem 5rem;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .tags {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        /* Content Container */
+        .main-container {
+            max-width: 1100px;
+            margin: -2.5rem auto 3rem;
+            padding: 0 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Section Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Route Tester Table */
+        .route-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .route-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            background: #f8fafc;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .route-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
+        }
+
+        .route-method {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .route-path {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .route-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .btn-test {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.4rem 0.9rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-test:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Modules Preview */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .module-box {
+            padding: 1.25rem;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .module-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-box h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .module-box p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 2rem; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                🎓 Alumni Portal
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Ana Sayfa</a></li>
+                <li><a href="/about/">Hakkımızda</a></li>
+                <li><a href="#routes">Aktif Rotalar</a></li>
+                <li><a href="#modules">Gelecek Modüller</a></li>
+                <li><span class="badge-status">Geliştirme Aşamasında</span></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>Alumni Portal</h1>
+            <p>Mezunlar, öğrenciler ve üniversite arasında güçlü bir bağ kuran yeni nesil yönetim ve kariyer platformu.</p>
+            <div class="tags">
+                <span class="tag">🐍 Python 3.13</span>
+                <span class="tag">⚡ Django 6.1</span>
+                <span class="tag">🗄️ SQLite</span>
+                <span class="tag">📚 Web Programming</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-container">
+
+        <!-- Route Testing Panel -->
+        <section id="routes" class="card">
+            <div class="card-header">
+                <h2 class="card-title">🚀 Aktif Rota (Route) Test Paneli</h2>
+                <span class="badge-status">Web Programming Ders Uygulaması</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+                Ders kapsamında yazılan ve çalışan rotaları aşağıdaki bağlantılardan hemen test edebilirsiniz:
+            </p>
+
+            <div class="route-grid">
+                <!-- Route 1 -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/</div>
+                    <div class="route-desc">Ana sayfa (Home Page) şablonu.</div>
+                    <a href="/" class="btn-test">Yenile ↻</a>
+                </div>
+
+                <!-- Route About -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/about/</div>
+                    <div class="route-desc">Hakkımızda sayfası şablonu.</div>
+                    <a href="/about/" class="btn-test">Ziyaret Et ↗</a>
+                </div>
+
+                <!-- Route 2 -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/hello/</div>
+                    <div class="route-desc">Sabit rota testi. "Hello, World!" döner.</div>
+                    <a href="/hello/" target="_blank" class="btn-test">Test Et ↗</a>
+                </div>
+
+                <!-- Route 3 -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/hello/&lt;name&gt;/</div>
+                    <div class="route-desc">Dinamik isim parametresi. "Hello, {name}!" döner.</div>
+                    <a href="/hello/Ahmet/" target="_blank" class="btn-test">Test Et (/hello/Ahmet/) ↗</a>
+                </div>
+
+                <!-- Route 4 -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/sum/&lt;num1&gt;/&lt;num2&gt;/</div>
+                    <div class="route-desc">İki sayıyı dinamik toplayan rota.</div>
+                    <a href="/sum/15/25/" target="_blank" class="btn-test">Test Et (/sum/15/25/) ↗</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Project Roadmap / Planned Modules -->
+        <section id="modules" class="card">
+            <div class="card-header">
+                <h2 class="card-title">📌 Proje Modülleri (Alumni Portal Mimarisi)</h2>
+            </div>
+            <div class="modules-grid">
+                <div class="module-box">
+                    <div class="module-icon">👥</div>
+                    <h4>Mezun Dizini</h4>
+                    <p>Mezunları mezuniyet yılı, bölüm, sektör ve konuma göre listeleme ve arama.</p>
+                </div>
+                <div class="module-box">
+                    <div class="module-icon">💼</div>
+                    <h4>Kariyer & İş İlanları</h4>
+                    <p>Mezunların şirketlerindeki staj ve iş fırsatlarını öğrencilerle paylaşması.</p>
+                </div>
+                <div class="module-box">
+                    <div class="module-icon">🤝</div>
+                    <h4>Mentörlük Programı</h4>
+                    <p>Kariyer basamaklarındaki mezunlar ile üniversite öğrencilerini buluşturma.</p>
+                </div>
+                <div class="module-box">
+                    <div class="module-icon">📅</div>
+                    <h4>Etkinlikler & Duyurular</h4>
+                    <p>Yıllık buluşmalar, teknik webinarlar ve kampüs etkinlikleri.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p><strong>Alumni Portal</strong> &bull; Web Programming Dönem Projesi</p>
+        <p style="margin-top: 0.25rem; font-size: 0.8rem;">Geliştirici: Ahmet Baha Büyükadem &bull; Django & SQLite</p>
+    </footer>
+
+</body>
+</html>
