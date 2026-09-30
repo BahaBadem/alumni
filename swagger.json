@@ -1,0 +1,479 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Alumni Portal REST API",
+    "version": "1.0.0",
+    "description": "Alumni Portal Web Programming Dönem Projesi REST API Dokümantasyonu.\n\nNOT: Projeye veya rotalara güncelleme geldikçe bu swagger.json dosyasının güncellenmesi gerekmektedir."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000",
+      "description": "Yerel Geliştirme Sunucusu (IPv4)"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Yerel Sunucu (Localhost)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Sistem sağlık kontrolü rotaları"
+    },
+    {
+      "name": "Users",
+      "description": "Kullanıcı CRUD (Kayıt, Listeleme, Güncelleme, Silme) operasyonları"
+    }
+  ],
+  "paths": {
+    "/api/healt/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Sistem Sağlık Kontrolü (Health Check)",
+        "description": "Servisin çalışır durumda olduğunu doğrulamak için JSON durum çıktısı döndürür.",
+        "responses": {
+          "200": {
+            "description": "Servis aktif ve sağlıklı",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok",
+                  "message": "healthy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Tüm Kullanıcıları Listele",
+        "description": "Veritabanındaki tüm kayıtlı kullanıcıların tüm bilgilerini (isim, doğum tarihi, şehir, okul vb.) JSON listesi halinde döndürür.",
+        "responses": {
+          "200": {
+            "description": "Kullanıcı listesi başarıyla getirildi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Yeni Kullanıcı Kaydet",
+        "description": "İsim, doğum tarihi, şehir ve okul bilgileriyle veritabanına yeni bir kullanıcı kaydeder.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateInput"
+              },
+              "example": {
+                "name": "Ahmet Baha Badem",
+                "birth_date": "2001-04-12",
+                "city": "İstanbul",
+                "school": "İstanbul Teknik Üniversitesi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Kullanıcı başarıyla kaydedildi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSingleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Eksik hücre veya geçersiz tarih formatı",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Tüm Kullanıcıları veya Gövdeden ID ile Sil",
+        "description": "'?all=true' parametresi ile tüm kayıtları silebilir veya gövdede '{ \"id\": N }' ile tekil kayıt silebilir.",
+        "parameters": [
+          {
+            "name": "all",
+            "in": "query",
+            "description": "Tüm kayıtları silmek için true verilebilir",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Silme işlemi başarılı",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Silinecek ID belirtilmedi"
+          }
+        }
+      }
+    },
+    "/api/users/{user_id}/": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Belirli Kullanıcı Detayı",
+        "description": "ID numarası verilen kullanıcının detaylarını getirir.",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Kullanıcı ID numarası",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kullanıcı bulundu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSingleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kullanıcı bulunamadı"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Kullanıcı Bilgilerini Tam Güncelle (PUT)",
+        "description": "Kullanıcının tüm hücrelerini (isim, doğum tarihi, şehir, okul) tamamen yeni değerlerle günceller. Tüm alanlar zorunludur.",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Güncellenecek Kullanıcı ID numarası",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kullanıcı başarıyla güncellendi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSingleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Eksik alan veya geçersiz tarih formatı"
+          },
+          "404": {
+            "description": "Kullanıcı bulunamadı"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Kullanıcı Bilgilerini Kısmi Güncelle (PATCH)",
+        "description": "Kullanıcının sadece gönderilen hücrelerini (örneğin sadece şehir veya sadece okul) kısmi olarak günceller.",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Güncellenecek Kullanıcı ID numarası",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchInput"
+              },
+              "example": {
+                "city": "İzmir"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kullanıcı kısmi olarak güncellendi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSingleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Değiştirilecek geçerli alan bulunamadı"
+          },
+          "404": {
+            "description": "Kullanıcı bulunamadı"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Kullanıcıyı Sil (DELETE)",
+        "description": "Belirtilen ID numaralı kullanıcıyı veritabanından kalıcı olarak siler.",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Silinecek Kullanıcı ID numarası",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kullanıcı başarıyla silindi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kullanıcı bulunamadı"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "message": {
+            "type": "string",
+            "example": "healthy"
+          }
+        }
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Ahmet Baha Badem"
+          },
+          "isim": {
+            "type": "string",
+            "example": "Ahmet Baha Badem"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          },
+          "dogum_tarihi": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          },
+          "city": {
+            "type": "string",
+            "example": "İstanbul"
+          },
+          "sehir": {
+            "type": "string",
+            "example": "İstanbul"
+          },
+          "school": {
+            "type": "string",
+            "example": "İstanbul Teknik Üniversitesi"
+          },
+          "okul": {
+            "type": "string",
+            "example": "İstanbul Teknik Üniversitesi"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-09-30 07:20:03"
+          }
+        }
+      },
+      "UserCreateInput": {
+        "type": "object",
+        "required": ["name", "birth_date", "city", "school"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Kullanıcı Adı Soyadı",
+            "example": "Ahmet Baha Badem"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Doğum Tarihi (YYYY-AA-GG)",
+            "example": "2001-04-12"
+          },
+          "city": {
+            "type": "string",
+            "description": "Yaşadığı Şehir",
+            "example": "İstanbul"
+          },
+          "school": {
+            "type": "string",
+            "description": "Mezun / Okuduğu Okul",
+            "example": "İstanbul Teknik Üniversitesi"
+          }
+        }
+      },
+      "UserPatchInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Yeni İsim"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-05-15"
+          },
+          "city": {
+            "type": "string",
+            "example": "İzmir"
+          },
+          "school": {
+            "type": "string",
+            "example": "Ege Üniversitesi"
+          }
+        }
+      },
+      "UserSingleResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "example": "Kullanıcı başarıyla kaydedildi."
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "UserListResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "count": {
+            "type": "integer",
+            "example": 2
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserProfile"
+            }
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "example": "İşlem başarıyla tamamlandı."
+          },
+          "deleted_id": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "error"
+          },
+          "message": {
+            "type": "string",
+            "example": "Lütfen tüm hücreleri eksiksiz doldurunuz."
+          }
+        }
+      }
+    }
+  }
+}

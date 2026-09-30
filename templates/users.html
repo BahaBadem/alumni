@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Portal | Kullanıcı API & Yönetimi</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #475569;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --error: #ef4444;
+            --error-bg: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.25rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary);
+        }
+
+        .badge-method {
+            background: #dbeafe;
+            color: var(--primary);
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 3.5rem 2rem 4.5rem;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+
+        .hero p {
+            font-size: 1.05rem;
+            opacity: 0.9;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1100px;
+            margin: -2.5rem auto 3rem;
+            padding: 0 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-success {
+            background-color: var(--success-bg);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background-color: var(--error-bg);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Grid Form Layout */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-cell label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .form-cell input {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .form-cell input:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #475569;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #334155;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .btn-outline:hover {
+            background: #eff6ff;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: var(--secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.925rem;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .empty-table {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem !important;
+            font-style: italic;
+        }
+
+        /* Code Block */
+        .code-box {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+        }
+
+        /* Live Response Box */
+        .response-container {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .response-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 0.35rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                🎓 Alumni Portal
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Ana Sayfa</a></li>
+                <li><a href="/about/">Hakkımızda</a></li>
+                <li><a href="/api/healt/">Health Check (JSON)</a></li>
+                <li><a href="/api/users/" target="_blank">Users API (GET /api/users) ↗</a></li>
+                <li><a href="/users/" class="active">Kullanıcı Yönetimi</a></li>
+                <li><span class="badge-method">REST API (CRUD)</span></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>👤 Kullanıcı Yönetimi & REST API</h1>
+            <p><strong>POST</strong> (Kayıt) &bull; <strong>GET</strong> (Listeleme) &bull; <strong>PUT</strong> (Tam Güncelleme) &bull; <strong>PATCH</strong> (Kısmi Güncelleme) &bull; <strong>DELETE</strong> (Silme)</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-container">
+
+        <!-- Canlı Durum Bildirim Alanı -->
+        <div id="liveAlert" style="display: none;" class="alert"></div>
+
+        <!-- Canlı JSON Çıktısı Alanı -->
+        <div id="liveResponseBox" class="response-container">
+            <div class="response-title" id="responseTitle">📡 Canlı API Yanıtı (JSON):</div>
+            <div class="code-box" id="responseContent"></div>
+        </div>
+
+        <!-- 1. Card: User Registration Form (POST) -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">📝 Yeni Kullanıcı Kaydet (POST /api/users)</h2>
+                <span class="badge-method" style="background: #dcfce7; color: #15803d;">Method: POST</span>
+            </div>
+
+            <form id="userForm">
+                <div class="form-grid">
+                    <!-- Hücre 1: İsim -->
+                    <div class="form-cell">
+                        <label for="name">👤 İsim (Ad Soyad):</label>
+                        <input type="text" id="name" name="name" placeholder="Örn: Ahmet Baha" required>
+                    </div>
+
+                    <!-- Hücre 2: Doğum Tarihi -->
+                    <div class="form-cell">
+                        <label for="birth_date">📅 Doğum Tarihi:</label>
+                        <input type="date" id="birth_date" name="birth_date" required>
+                    </div>
+
+                    <!-- Hücre 3: Şehir -->
+                    <div class="form-cell">
+                        <label for="city">🏙️ Şehir:</label>
+                        <input type="text" id="city" name="city" placeholder="Örn: İstanbul" required>
+                    </div>
+
+                    <!-- Hücre 4: Okul -->
+                    <div class="form-cell">
+                        <label for="school">🏫 Okul:</label>
+                        <input type="text" id="school" name="school" placeholder="Örn: İstanbul Teknik Üniversitesi" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <button type="button" id="btnFetchAll" class="btn-secondary">
+                        📥 Tümünü Getir (GET /api/users)
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        ➕ Kullanıcıyı Kaydet (POST /api/users)
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 2. Card: User Update (PUT & PATCH) -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">✏️ Kullanıcı Güncelleme (PUT & PATCH /api/users/&lt;id&gt;/)</h2>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="badge-method" style="background: #e0f2fe; color: #0369a1;">PUT: Tam Güncelleme</span>
+                    <span class="badge-method" style="background: #e0e7ff; color: #4338ca;">PATCH: Kısmi Güncelleme</span>
+                </div>
+            </div>
+
+            <form id="updateForm">
+                <div class="form-grid">
+                    <div class="form-cell">
+                        <label for="up_id">🆔 Kullanıcı ID:</label>
+                        <input type="number" id="up_id" placeholder="Örn: 1" required min="1">
+                    </div>
+                    <div class="form-cell">
+                        <label for="up_name">👤 İsim:</label>
+                        <input type="text" id="up_name" placeholder="PATCH için opsiyonel">
+                    </div>
+                    <div class="form-cell">
+                        <label for="up_birth_date">📅 Doğum Tarihi:</label>
+                        <input type="date" id="up_birth_date">
+                    </div>
+                    <div class="form-cell">
+                        <label for="up_city">🏙️ Şehir:</label>
+                        <input type="text" id="up_city" placeholder="PATCH için opsiyonel">
+                    </div>
+                    <div class="form-cell">
+                        <label for="up_school">🏫 Okul:</label>
+                        <input type="text" id="up_school" placeholder="PATCH için opsiyonel">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+                    <button type="button" id="btnPatch" class="btn-submit" style="background: #4f46e5;">
+                        🩹 Kısmi Değiştir (PATCH)
+                    </button>
+                    <button type="button" id="btnPut" class="btn-submit" style="background: #0284c7;">
+                        🔄 Tam Değiştir (PUT)
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 3. Card: User Deletion (DELETE) -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">🗑️ Kullanıcı Silme (DELETE /api/users/&lt;id&gt;/)</h2>
+                <span class="badge-method" style="background: #fee2e2; color: #991b1b;">Method: DELETE</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Silmek istediğiniz kullanıcının ID numarasını girerek veya aşağıdaki tablodan <strong>"Sil"</strong> butonuna tıklayarak silebilirsiniz.
+            </p>
+            <div style="display: flex; gap: 0.75rem; max-width: 400px;">
+                <input type="number" id="del_id" placeholder="Silinecek Kullanıcı ID" style="padding: 0.65rem 1rem; border: 1px solid var(--border); border-radius: 8px; flex: 1;" min="1">
+                <button type="button" id="btnDeleteManual" class="btn-danger" style="padding: 0.65rem 1.25rem;">
+                    🗑️ Kullanıcıyı Sil (DELETE)
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. Card: Registered Users Table -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">📋 Kayıtlı Kullanıcılar Tablosu (SQLite)</h2>
+                <a href="/api/users/" target="_blank" class="btn-secondary" style="font-size: 0.8rem;">
+                    🌐 /api/users JSON Çıktısı ↗
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th># ID</th>
+                            <th>İsim</th>
+                            <th>Doğum Tarihi</th>
+                            <th>Şehir</th>
+                            <th>Okul</th>
+                            <th>Kayıt Zamanı</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        {% for user in users %}
+                        <tr id="row-{{ user.id }}">
+                            <td><strong>#{{ user.id }}</strong></td>
+                            <td>{{ user.name }}</td>
+                            <td>{{ user.birth_date|date:"Y-m-d" }}</td>
+                            <td>{{ user.city }}</td>
+                            <td>{{ user.school }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ user.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem;">
+                                    <button class="btn-outline" onclick="populateUpdateForm({{ user.id }}, '{{ user.name }}', '{{ user.birth_date|date:"Y-m-d" }}', '{{ user.city }}', '{{ user.school }}')">✏️ Düzenle</button>
+                                    <button class="btn-danger" onclick="deleteUser({{ user.id }})">🗑️ Sil</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr id="emptyRow">
+                            <td colspan="7" class="empty-table">
+                                Henüz kayıtlı kullanıcı bulunmuyor. Yukarıdaki formu kullanarak ilk kullanıcıyı ekleyebilirsiniz.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 5. Card: API Testing Guide -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="card-title">⚡ Terminalden cURL ile Test Komutları</h2>
+            </div>
+            
+            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 0.5rem;">1. GET /api/users (Tüm Bilgileri Listele):</p>
+            <div class="code-box">curl -i http://127.0.0.1:8000/api/users/</div>
+
+            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 1rem;">2. POST /api/users (Yeni Kullanıcı Ekle):</p>
+            <div class="code-box">curl -i -X POST http://127.0.0.1:8000/api/users/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Baha Badem",
+       "birth_date": "2001-04-12",
+       "city": "Ankara",
+       "school": "Hacettepe Üniversitesi"
+     }'</div>
+
+            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 1rem;">3. PUT /api/users/&lt;id&gt;/ (Tüm Bilgileri Tam Değiştir):</p>
+            <div class="code-box">curl -i -X PUT http://127.0.0.1:8000/api/users/1/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Ahmet Baha Badem",
+       "birth_date": "2001-04-12",
+       "city": "İstanbul",
+       "school": "İTÜ"
+     }'</div>
+
+            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 1rem;">4. PATCH /api/users/&lt;id&gt;/ (Sadece İstenen Hücreyi Kısmi Değiştir):</p>
+            <div class="code-box">curl -i -X PATCH http://127.0.0.1:8000/api/users/1/ \
+     -H "Content-Type: application/json" \
+     -d '{"city": "İzmir"}'</div>
+
+            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 1rem;">5. DELETE /api/users/&lt;id&gt;/ (Kullanıcı Kaydını Sil):</p>
+            <div class="code-box">curl -i -X DELETE http://127.0.0.1:8000/api/users/1/</div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p><strong>Alumni Portal</strong> &bull; Web Programming Dönem Projesi</p>
+        <p style="margin-top: 0.25rem; font-size: 0.8rem;">Geliştirici: Ahmet Baha Büyükadem &bull; Django & SQLite</p>
+    </footer>
+
+    <!-- Interactive Client JS -->
+    <script>
+        const userForm = document.getElementById('userForm');
+        const liveAlert = document.getElementById('liveAlert');
+        const liveResponseBox = document.getElementById('liveResponseBox');
+        const responseTitle = document.getElementById('responseTitle');
+        const responseContent = document.getElementById('responseContent');
+        const btnFetchAll = document.getElementById('btnFetchAll');
+        const btnPut = document.getElementById('btnPut');
+        const btnPatch = document.getElementById('btnPatch');
+        const btnDeleteManual = document.getElementById('btnDeleteManual');
+        const tableBody = document.getElementById('usersTableBody');
+
+        function showAlert(msg, isSuccess) {
+            liveAlert.style.display = 'block';
+            liveAlert.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-error');
+            liveAlert.innerHTML = (isSuccess ? '✅ ' : '⚠️ ') + msg;
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+
+        function showResponse(title, data) {
+            liveResponseBox.style.display = 'block';
+            responseTitle.textContent = title;
+            responseContent.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function populateUpdateForm(id, name, birth_date, city, school) {
+            document.getElementById('up_id').value = id;
+            document.getElementById('up_name').value = name;
+            document.getElementById('up_birth_date').value = birth_date;
+            document.getElementById('up_city').value = city;
+            document.getElementById('up_school').value = school;
+            document.getElementById('updateForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // POST /api/users/
+        userForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('name').value,
+                birth_date: document.getElementById('birth_date').value,
+                city: document.getElementById('city').value,
+                school: document.getElementById('school').value
+            };
+
+            try {
+                const res = await fetch('/api/users/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showResponse('📡 POST /api/users/ Yanıtı (Status: ' + res.status + '):', data);
+
+                if (res.ok && data.status === 'success') {
+                    showAlert(data.message || 'Kullanıcı başarıyla kaydedildi!', true);
+                    userForm.reset();
+                    reloadUsers();
+                } else {
+                    showAlert(data.message || 'Hata oluştu.', false);
+                }
+            } catch (err) {
+                showAlert('Bağlantı hatası: ' + err.message, false);
+            }
+        });
+
+        // PUT request
+        btnPut.addEventListener('click', async function() {
+            const id = document.getElementById('up_id').value;
+            if (!id) {
+                showAlert('Lütfen güncellenecek kullanıcı ID giriniz.', false);
+                return;
+            }
+
+            const payload = {
+                name: document.getElementById('up_name').value,
+                birth_date: document.getElementById('up_birth_date').value,
+                city: document.getElementById('up_city').value,
+                school: document.getElementById('up_school').value
+            };
+
+            try {
+                const res = await fetch('/api/users/' + id + '/', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showResponse('📡 PUT /api/users/' + id + '/ Yanıtı (Status: ' + res.status + '):', data);
+
+                if (res.ok && data.status === 'success') {
+                    showAlert(data.message || 'Kullanıcı başarıyla güncellendi (PUT)!', true);
+                    reloadUsers();
+                } else {
+                    showAlert(data.message || 'PUT hatası.', false);
+                }
+            } catch (err) {
+                showAlert('PUT isteğinde hata: ' + err.message, false);
+            }
+        });
+
+        // PATCH request
+        btnPatch.addEventListener('click', async function() {
+            const id = document.getElementById('up_id').value;
+            if (!id) {
+                showAlert('Lütfen kısmi güncellenecek kullanıcı ID giriniz.', false);
+                return;
+            }
+
+            const payload = {};
+            const name = document.getElementById('up_name').value;
+            const bdate = document.getElementById('up_birth_date').value;
+            const city = document.getElementById('up_city').value;
+            const school = document.getElementById('up_school').value;
+
+            if (name) payload.name = name;
+            if (bdate) payload.birth_date = bdate;
+            if (city) payload.city = city;
+            if (school) payload.school = school;
+
+            if (Object.keys(payload).length === 0) {
+                showAlert('PATCH için en az bir alanı doldurunuz (isim, doğum tarihi, şehir veya okul).', false);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/users/' + id + '/', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showResponse('📡 PATCH /api/users/' + id + '/ Yanıtı (Status: ' + res.status + '):', data);
+
+                if (res.ok && data.status === 'success') {
+                    showAlert(data.message || 'Kullanıcı kısmi olarak güncellendi (PATCH)!', true);
+                    reloadUsers();
+                } else {
+                    showAlert(data.message || 'PATCH hatası.', false);
+                }
+            } catch (err) {
+                showAlert('PATCH isteğinde hata: ' + err.message, false);
+            }
+        });
+
+        // DELETE request function
+        async function deleteUser(id) {
+            if (!confirm(id + ' ID numaralı kullanıcıyı silmek istediğinize emin misiniz?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/users/' + id + '/', {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                showResponse('📡 DELETE /api/users/' + id + '/ Yanıtı (Status: ' + res.status + '):', data);
+
+                if (res.ok && data.status === 'success') {
+                    showAlert(data.message || 'Kullanıcı silindi.', true);
+                    reloadUsers();
+                } else {
+                    showAlert(data.message || 'Silme işlemi başarısız.', false);
+                }
+            } catch (err) {
+                showAlert('Silme hatası: ' + err.message, false);
+            }
+        }
+
+        // Manual delete button
+        btnDeleteManual.addEventListener('click', function() {
+            const id = document.getElementById('del_id').value;
+            if (!id) {
+                showAlert('Lütfen silinecek kullanıcı ID numarasını giriniz.', false);
+                return;
+            }
+            deleteUser(id);
+        });
+
+        async function reloadUsers() {
+            try {
+                const res = await fetch('/api/users/');
+                const data = await res.json();
+                if (data.users) {
+                    tableBody.innerHTML = '';
+                    if (data.users.length === 0) {
+                        tableBody.innerHTML = '<tr id="emptyRow"><td colspan="7" class="empty-table">Henüz kayıtlı kullanıcı bulunmuyor.</td></tr>';
+                    } else {
+                        data.users.forEach(u => {
+                            const tr = document.createElement('tr');
+                            tr.id = 'row-' + u.id;
+                            tr.innerHTML = `
+                                <td><strong>#${u.id}</strong></td>
+                                <td>${u.name}</td>
+                                <td>${u.birth_date || '-'}</td>
+                                <td>${u.city || '-'}</td>
+                                <td>${u.school || '-'}</td>
+                                <td style="color: var(--text-muted); font-size: 0.85rem;">${u.created_at || '-'}</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <button class="btn-outline" onclick="populateUpdateForm(${u.id}, '${u.name}', '${u.birth_date}', '${u.city}', '${u.school}')">✏️ Düzenle</button>
+                                        <button class="btn-danger" onclick="deleteUser(${u.id})">🗑️ Sil</button>
+                                    </div>
+                                </td>
+                            `;
+                            tableBody.appendChild(tr);
+                        });
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // GET /api/users/
+        btnFetchAll.addEventListener('click', async function() {
+            try {
+                const res = await fetch('/api/users/');
+                const data = await res.json();
+                showResponse('📡 GET /api/users/ Yanıtı (Tüm Bilgiler):', data);
+                showAlert('Tüm kullanıcı verileri (/api/users) başarıyla getirildi.', true);
+                reloadUsers();
+            } catch (err) {
+                showAlert('Veriler alınamadı: ' + err.message, false);
+            }
+        });
+    </script>
+
+</body>
+</html>

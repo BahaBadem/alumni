@@ -93,8 +93,29 @@ alumni-portal/
 | `GET` | `/hello/` | `hello` | Static route | `"Hello, World!"` |
 | `GET` | `/hello/<str:name>/` | `hello` | Dynamic route parameter | `/hello/Ahmet/` ➔ `"Hello, Ahmet!"` |
 | `GET` | `/sum/<int:num1>/<int:num2>/` | `calculate_sum` | Dynamic integer parameters | `/sum/15/25/` ➔ `"40"` |
+| `GET` | `/api/healt/` | `health_check` | Health check API (JSON) | `{"status": "ok", "message": "healthy"}` |
+| `POST` | `/api/users/` | `api_users_view` | Yeni kullanıcı kaydı (isim, doğum tarihi, şehir, okul) | `201 Created` & `{"status": "success", "user": {...}}` |
+| `GET` | `/api/users/` | `api_users_view` | Tüm kayıtlı kullanıcıların tüm bilgilerini JSON listeler | `200 OK` & `{"status": "success", "count": N, "users": [...]}` |
+| `PUT` | `/api/users/<id>/` | `api_users_view` | Belirtilen kullanıcının tüm bilgilerini tam güncelleme | `200 OK` & `{"status": "success", "user": {...}}` |
+| `PATCH` | `/api/users/<id>/` | `api_users_view` | Belirtilen kullanıcının sadece verilen alanlarını kısmi güncelleme | `200 OK` & `{"status": "success", "user": {...}}` |
+| `DELETE` | `/api/users/<id>/` | `api_users_view` | Belirtilen kullanıcı kaydını silme | `200 OK` & `{"status": "success", "deleted_id": N}` |
+| `GET` | `/api/swagger/` | `swagger_ui_view` | İnteraktif Swagger UI REST API dokümantasyonu | Renders `templates/swagger.html` |
+| `GET` | `/api/swagger.json` | `swagger_json_view` | OpenAPI 3.0 şema çıktısı (JSON) | `swagger.json` içerik çıktısı |
+| `GET` / `POST` | `/users/` | `users_page_view` | Kullanıcı kayıt ve yönetim paneli görsel arayüzü | Renders `templates/users.html` |
 
 ---
+
+## 📄 Swagger / OpenAPI API Dokümantasyonu & Güncelleme Kuralı
+
+Projedeki tüm REST API uç noktaları OpenAPI 3.0 standardında hazırlanmış ve **Swagger UI** ile görselleştirilmiştir.
+
+- **Swagger Arayüzü (Web):** `http://127.0.0.1:8000/api/swagger/`
+- **Şema Dosyası (JSON):** `http://127.0.0.1:8000/api/swagger.json` veya proje kök dizinindeki [`swagger.json`](./swagger.json)
+
+> ### ⚠️ ÖNEMLİ GELİŞTİRİCİ KURALI: `swagger.json` Güncelleme Zorunluluğu
+> Projeye yeni bir API ucu (endpoint) eklendiğinde, mevcut rotalarda metot/parametre değişikliği yapıldığında veya model alanlarında güncelleme olduğunda, **proje kök dizinindeki `swagger.json` dosyasının da güncellenmesi zorunludur.**
+> 
+> Swagger UI arayüzü doğrudan bu dosyayı dinamik olarak okuduğu için, yapılan tüm değişiklikler `swagger.json` dosyasına işlendikten sonra arayüze anında yansıyacaktır.
 
 ## 💻 Local Development
 

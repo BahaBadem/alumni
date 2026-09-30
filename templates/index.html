@@ -286,6 +286,8 @@
             <ul class="nav-links">
                 <li><a href="/">Ana Sayfa</a></li>
                 <li><a href="/about/">Hakkımızda</a></li>
+                <li><a href="/users/">Kullanıcılar (/users)</a></li>
+                <li><a href="/api/swagger/" target="_blank">Swagger Docs ↗</a></li>
                 <li><a href="#routes">Aktif Rotalar</a></li>
                 <li><a href="#modules">Gelecek Modüller</a></li>
                 <li><span class="badge-status">Geliştirme Aşamasında</span></li>
@@ -360,8 +362,41 @@
                     <div class="route-desc">İki sayıyı dinamik toplayan rota.</div>
                     <a href="/sum/15/25/" target="_blank" class="btn-test">Test Et (/sum/15/25/) ↗</a>
                 </div>
+
+                <!-- Route 5: Health Check API -->
+                <div class="route-item">
+                    <span class="route-method">GET</span>
+                    <div class="route-path">/api/healt/</div>
+                    <div class="route-desc">Sistem durum kontrolü (Health Check). JSON yanıt döner.</div>
+                    <a href="/api/healt/" target="_blank" class="btn-test">Test Et (/api/healt/) ↗</a>
+                </div>
+
+                <!-- Route 6: Users REST API & Management -->
+                <div class="route-item">
+                    <span class="route-method" style="background: #e0f2fe; color: #0369a1;">GET, POST, PUT, PATCH, DELETE</span>
+                    <div class="route-path">/api/users/ &bull; /api/users/&lt;id&gt;/</div>
+                    <div class="route-desc">Tam CRUD REST API: GET (listele), POST (ekle), PUT (tam güncelle), PATCH (kısmi güncelle), DELETE (sil).</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="/api/users/" target="_blank" class="btn-test">JSON Listele (GET) ↗</a>
+                        <a href="/users/" class="btn-test" style="background: #475569;">Yönetim & Form Paneli ↗</a>
+                    </div>
+                </div>
+
+                <!-- Route 7: Swagger API Documentation -->
+                <div class="route-item">
+                    <span class="route-method" style="background: #fef08a; color: #854d0e;">GET</span>
+                    <div class="route-path">/api/swagger/</div>
+                    <div class="route-desc">İnteraktif OpenAPI 3.0 / Swagger UI arayüzü ve canlı test konsolu.</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="/api/swagger/" target="_blank" class="btn-test">Swagger UI Aç ↗</a>
+                        <a href="/api/swagger.json" target="_blank" class="btn-test" style="background: #475569;">swagger.json ↗</a>
+                    </div>
+                </div>
+
             </div>
         </section>
+
+
 
         <!-- Project Roadmap / Planned Modules -->
         <section id="modules" class="card">

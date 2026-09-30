@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import home, about, hello, calculate_sum
+from .views import (
+    home, about, hello, calculate_sum, health_check,
+    api_users_view, users_page_view, swagger_ui_view, swagger_json_view
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,5 +30,18 @@ urlpatterns = [
     path('hello/<str:name>/', hello, name='hello_name'),
     path('sum/<int:num1>/<int:num2>/', calculate_sum, name='sum'),
     path('sum/<int:num1>/<int:num2>', calculate_sum),
+    path('api/healt/', health_check, name='health_check'),
+    path('api/healt', health_check),
+    path('api/health/', health_check, name='health_check_alt'),
+    path('api/health', health_check),
+    path('api/users/', api_users_view, name='api_users'),
+    path('api/users', api_users_view),
+    path('api/users/<int:user_id>/', api_users_view, name='api_user_detail'),
+    path('api/users/<int:user_id>', api_users_view),
+    path('api/swagger/', swagger_ui_view, name='swagger_ui'),
+    path('api/swagger', swagger_ui_view),
+    path('api/swagger.json', swagger_json_view, name='swagger_json'),
+    path('users/', users_page_view, name='users_page'),
+    path('users', users_page_view),
 ]
 
