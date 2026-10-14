@@ -10,22 +10,47 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# .env dosyasını harici kütüphane bağımlılığı olmaksızın güvenle yükle
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    try:
+        with open(_env_file, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith('#') or '=' not in _line:
+                    continue
+                _k, _v = _line.split('=', 1)
+                _k = _k.strip()
+                _v = _v.strip().strip("'\"")
+                if _k and _k not in os.environ:
+                    os.environ[_k] = _v
+    except Exception:
+        pass
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rp$0+t_qtgg&gxgmx)hnim=tce(t-jdu%qzr(4k%s1ef#@++33'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-rp$0+t_qtgg&gxgmx)hnim=tce(t-jdu%qzr(4k%s1ef#@++33'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*']
+_allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', '*')
+if _allowed_hosts_str == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_str.split(',') if h.strip()]
 
 
 # Application definition
@@ -73,12 +98,38 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = os.environ.get('DB_ENGINE', '').strip()
+
+_has_postgres_driver = False
+if DB_ENGINE == 'django.db.backends.postgresql' or ('POSTGRES_DB' in os.environ and DB_ENGINE != 'django.db.backends.sqlite3'):
+    try:
+        import psycopg2  # noqa: F401
+        _has_postgres_driver = True
+    except ImportError:
+        try:
+            import psycopg  # noqa: F401
+            _has_postgres_driver = True
+        except ImportError:
+            _has_postgres_driver = False
+
+if _has_postgres_driver:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', os.environ.get('POSTGRES_DB', 'alumni_db')),
+            'USER': os.environ.get('DB_USER', os.environ.get('POSTGRES_USER', 'alumni_user')),
+            'PASSWORD': os.environ.get('DB_PASSWORD', os.environ.get('POSTGRES_PASSWORD', 'alumni_password')),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

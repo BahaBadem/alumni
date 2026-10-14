@@ -1,0 +1,57 @@
+services:
+  # ============================================================================
+  # 1. VERİTABANI SERVİSİ (POSTGRESQL DATABASE)
+  # ============================================================================
+  db:
+    image: postgres:16-alpine
+    container_name: alumni_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-alumni_db}
+      POSTGRES_USER: ${POSTGRES_USER:-alumni_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-alumni_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alumni_user} -d ${POSTGRES_DB:-alumni_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # 2. WEB UYGULAMA SERVİSİ (DJANGO BACKEND)
+  # ============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alumni_web
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${POSTGRES_DB:-alumni_db}
+      - DB_USER=${POSTGRES_USER:-alumni_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-alumni_password}
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+# ==============================================================================
+# KALICI VERİ DEPOLAMA (VOLUMES)
+# ==============================================================================
+volumes:
+  postgres_data:
+    driver: local

@@ -124,8 +124,8 @@ class AnnouncementControllersTestCase(unittest.TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         announcement_service.clear_storage()
-        self.web_controller = AnnouncementController()
-        self.api_controller = ApiAnnouncementController()
+        self.web_controller = AnnouncementController(use_in_memory=True)
+        self.api_controller = ApiAnnouncementController(use_in_memory=True)
 
     def tearDown(self):
         announcement_service.clear_storage()

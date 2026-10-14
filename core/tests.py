@@ -1,5 +1,12 @@
 import json
+from io import StringIO
 from django.test import TestCase, Client
+from django.core.management import call_command
+from core.models import UserProfile, Announcement
+from core.database.factories import UserProfileFactory, AnnouncementFactory
+from core.database.seeders import UserProfileSeeder, AnnouncementSeeder, DatabaseSeeder
+from core.services import announcement_service
+from announcement_model import AnnouncementValidationError, AnnouncementNotFoundError
 
 
 class HomeRouteTestCase(TestCase):
@@ -426,5 +433,253 @@ class SwaggerRouteTestCase(TestCase):
         self.assertIn('Health', [t['name'] for t in data.get('tags', [])])
         self.assertIn('Users', [t['name'] for t in data.get('tags', [])])
 
+
+class AnnouncementModelTestCase(TestCase):
+    """core/models.py içerisindeki Announcement ORM modeli birim testleri."""
+
+    def test_announcement_creation_and_defaults(self):
+        ann = Announcement.objects.create(
+            title="Kariyer Fuarı 2026",
+            content="Tüm mezun ve öğrencilerimiz davetlidir.",
+        )
+        self.assertIsNotNone(ann.id)
+        self.assertEqual(ann.author, "Mezunlar Koordinatörlüğü")
+        self.assertEqual(ann.category, "Genel")
+        self.assertTrue(ann.is_active)
+        self.assertIn("Kariyer Fuarı 2026", str(ann))
+
+    def test_announcement_to_dict_bilingual(self):
+        ann = Announcement.objects.create(
+            title="Mezun Buluşması",
+            content="Geleneksel mezun buluşması kampüste yapılacaktır.",
+            author="Rektörlük",
+            category="Etkinlik",
+            is_active=True,
+        )
+        data = ann.to_dict()
+        # İngilizce alanlar
+        self.assertEqual(data["id"], ann.id)
+        self.assertEqual(data["title"], "Mezun Buluşması")
+        self.assertEqual(data["content"], "Geleneksel mezun buluşması kampüste yapılacaktır.")
+        self.assertEqual(data["author"], "Rektörlük")
+        self.assertEqual(data["category"], "Etkinlik")
+        self.assertTrue(data["is_active"])
+        # Türkçe alias alanlar
+        self.assertEqual(data["baslik"], "Mezun Buluşması")
+        self.assertEqual(data["icerik"], "Geleneksel mezun buluşması kampüste yapılacaktır.")
+        self.assertEqual(data["yazar"], "Rektörlük")
+        self.assertEqual(data["kategori"], "Etkinlik")
+        self.assertTrue(data["aktif_mi"])
+
+
+class DatabaseFactoryAndSeederTestCase(TestCase):
+    """Database Factory ve Seeder mimarisinin kapsamlı birim ve entegrasyon testleri."""
+
+    def test_user_profile_factory_build_and_create(self):
+        factory = UserProfileFactory()
+        
+        # build: Sadece hafızada, DB ID'si olmamalı
+        built_user = factory.build(city="İzmir")
+        self.assertIsNone(built_user.id)
+        self.assertEqual(built_user.city, "İzmir")
+        self.assertTrue(len(built_user.name) >= 3)
+
+        # create: Veritabanına yazılmalı, ID atanmalı
+        created_user = factory.create(city="Bursa")
+        self.assertIsNotNone(created_user.id)
+        self.assertEqual(created_user.city, "Bursa")
+        self.assertTrue(UserProfile.objects.filter(id=created_user.id).exists())
+
+    def test_announcement_factory_build_and_create(self):
+        factory = AnnouncementFactory()
+
+        # build
+        built_ann = factory.build(category="Kariyer")
+        self.assertIsNone(built_ann.id)
+        self.assertEqual(built_ann.category, "Kariyer")
+        self.assertTrue(built_ann.is_active)
+
+        # create
+        created_ann = factory.create(category="Etkinlik")
+        self.assertIsNotNone(created_ann.id)
+        self.assertEqual(created_ann.category, "Etkinlik")
+        self.assertTrue(Announcement.objects.filter(id=created_ann.id).exists())
+
+    def test_factory_batch_operations(self):
+        user_factory = UserProfileFactory()
+        ann_factory = AnnouncementFactory()
+
+        # build_batch
+        built_users = user_factory.build_batch(3)
+        self.assertEqual(len(built_users), 3)
+        for u in built_users:
+            self.assertIsNone(u.id)
+
+        # create_batch
+        created_anns = ann_factory.create_batch(4)
+        self.assertEqual(len(created_anns), 4)
+        for a in created_anns:
+            self.assertIsNotNone(a.id)
+
+    def test_user_seeder_idempotency(self):
+        seeder = UserProfileSeeder()
+
+        # 1. Çalıştırma (Çekirdek kullanıcılar eklenir)
+        report1 = seeder.seed(count=0)
+        self.assertEqual(report1["created"], len(UserProfileSeeder.CORE_USERS))
+        self.assertEqual(report1["existing"], 0)
+
+        # 2. Çalıştırma (Çekirdek kullanıcılar mükerrer eklenmemeli)
+        report2 = seeder.seed(count=0)
+        self.assertEqual(report2["created"], 0)
+        self.assertEqual(report2["existing"], len(UserProfileSeeder.CORE_USERS))
+
+    def test_announcement_seeder_idempotency(self):
+        seeder = AnnouncementSeeder()
+
+        # 1. Çalıştırma
+        report1 = seeder.seed(count=0)
+        self.assertTrue(report1["created"] > 0)
+        self.assertEqual(report1["existing"], 0)
+
+        # 2. Çalıştırma
+        report2 = seeder.seed(count=0)
+        self.assertEqual(report2["created"], 0)
+        self.assertEqual(report2["existing"], report1["created"])
+
+    def test_master_database_seeder_and_clear(self):
+        master = DatabaseSeeder()
+        report = master.seed(users_count=3, announcements_count=2)
+        self.assertEqual(report["status"], "success")
+        self.assertTrue(report["users"]["total"] >= 3)
+        self.assertTrue(report["announcements"]["total"] >= 2)
+
+        # Temizleme testi
+        deleted = master.clear()
+        self.assertTrue(deleted > 0)
+        self.assertEqual(UserProfile.objects.count(), 0)
+        self.assertEqual(Announcement.objects.count(), 0)
+
+    def test_seed_management_command(self):
+        out = StringIO()
+        call_command(
+            "seed",
+            users=2,
+            announcements=2,
+            no_input=True,
+            stdout=out
+        )
+        output = out.getvalue()
+        self.assertIn("VERİTABANI TOHUMLAMA", output)
+        self.assertIn("BAŞARIYLA TAMAMLANDI", output)
+
+
+class AnnouncementDatabaseCrudTestCase(TestCase):
+    """
+    Announcement CRUD operasyonlarının doğrudan veritabanı (Django ORM / SQLite)
+    üzerinde çalıştığını doğrulayan kapsamlı entegrasyon testleri.
+    """
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_announcement_db_service_crud(self):
+        # 1. CREATE via DB service
+        ann = announcement_service.create_announcement(
+            title="DB Test Duyurusu",
+            content="Veritabanına doğrudan yazılan duyuru içeriği...",
+            author="Bilgi İşlem",
+            category="Genel",
+            is_active=True
+        )
+        self.assertIsNotNone(ann.id)
+        self.assertTrue(Announcement.objects.filter(id=ann.id).exists())
+
+        # 2. READ via DB service
+        fetched = announcement_service.get_announcement(ann.id)
+        self.assertIsNotNone(fetched)
+        self.assertEqual(fetched.title, "DB Test Duyurusu")
+
+        # 3. UPDATE / PATCH via DB service
+        patched = announcement_service.patch_announcement(ann.id, title="Güncellenmiş DB Duyurusu")
+        self.assertEqual(patched.title, "Güncellenmiş DB Duyurusu")
+        
+        # Veritabanında güncellendiğini teyit et
+        db_record = Announcement.objects.get(id=ann.id)
+        self.assertEqual(db_record.title, "Güncellenmiş DB Duyurusu")
+
+        # 4. DELETE via DB service
+        announcement_service.delete_announcement(ann.id)
+        self.assertFalse(Announcement.objects.filter(id=ann.id).exists())
+
+    def test_web_announcement_crud_via_db(self):
+        # 1. CREATE via Web Form (POST)
+        res_post = self.client.post("/announcements/create/", data={
+            "title": "Web DB Entegrasyon Duyurusu",
+            "content": "Web arayüzünden veritabanına eklenen duyuru metni.",
+            "author": "Rektörlük",
+            "category": "Etkinlik",
+            "is_active": "true"
+        })
+        self.assertEqual(res_post.status_code, 201)
+        
+        # Veritabanında kaydın oluştuğunu teyit et
+        created_ann = Announcement.objects.filter(title="Web DB Entegrasyon Duyurusu").first()
+        self.assertIsNotNone(created_ann)
+        self.assertEqual(created_ann.category, "Etkinlik")
+
+        # 2. READ via Web List (GET)
+        res_get = self.client.get("/announcements/")
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, "Web DB Entegrasyon Duyurusu")
+
+        # 3. DELETE via Web (POST _method=DELETE)
+        res_del = self.client.post(f"/announcements/{created_ann.id}/delete/", data={"_method": "DELETE"})
+        self.assertEqual(res_del.status_code, 200)
+        self.assertFalse(Announcement.objects.filter(id=created_ann.id).exists())
+
+    def test_api_announcement_crud_via_db(self):
+        # 1. CREATE via REST API (POST)
+        payload = {
+            "title": "REST API DB Duyurusu",
+            "content": "REST API ile veritabanına kaydedilen duyuru.",
+            "author": "Kariyer Merkezi",
+            "category": "Kariyer",
+            "is_active": True
+        }
+        res_post = self.client.post(
+            "/api/announcements/",
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res_post.status_code, 201)
+        post_data = res_post.json()
+        self.assertEqual(post_data.get("status"), "success")
+        ann_id = post_data["announcement"]["id"]
+
+        # Veritabanında kontrol
+        self.assertTrue(Announcement.objects.filter(id=ann_id).exists())
+
+        # 2. DETAIL via REST API (GET)
+        res_detail = self.client.get(f"/api/announcements/{ann_id}/")
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertEqual(res_detail.json()["announcement"]["title"], "REST API DB Duyurusu")
+
+        # 3. PATCH via REST API (PATCH)
+        res_patch = self.client.patch(
+            f"/api/announcements/{ann_id}/",
+            data=json.dumps({"title": "API ile Başlık Değişti"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_patch.status_code, 200)
+        
+        # Veritabanında güncellendiğini doğrula
+        refreshed = Announcement.objects.get(id=ann_id)
+        self.assertEqual(refreshed.title, "API ile Başlık Değişti")
+
+        # 4. DELETE via REST API (DELETE)
+        res_del = self.client.delete(f"/api/announcements/{ann_id}/")
+        self.assertEqual(res_del.status_code, 200)
+        self.assertFalse(Announcement.objects.filter(id=ann_id).exists())
 
 

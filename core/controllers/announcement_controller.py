@@ -5,6 +5,9 @@ Bu modül, web tarayıcısından gelen HTTP isteklerini karşılayan,
 templates/announcements.html görsel yönetim şablonunu render eden ve
 duyurular üzerinde tam CRUD operasyonlarını icra eden AnnouncementController
 sınıfını içerir.
+
+Veritabanı (Django ORM) veya bellek içi (In-Memory) deposunu destekler.
+Varsayılan olarak veritabanı (Database Connection) modunda çalışır.
 """
 
 from typing import Optional
@@ -12,7 +15,9 @@ from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 
-import announcement as announcement_service
+# Veritabanı ve In-Memory Servis Katmanları
+from core.services import announcement_service as db_service
+import announcement as in_memory_service
 from announcement_model import AnnouncementValidationError, AnnouncementNotFoundError
 
 
@@ -28,6 +33,19 @@ class AnnouncementController:
     - Duyuru kaydını silmek (Delete)
     - Kategori ve anahtar kelimeye göre filtrelemek (Search/Filter)
     """
+
+    def __init__(self, use_in_memory: bool = False):
+        """
+        Args:
+            use_in_memory (bool): False ise veritabanını (Django ORM) kullanır.
+                                  True ise bellek içi (In-Memory) deposunu kullanır.
+        """
+        self.use_in_memory = use_in_memory
+
+    @property
+    def service(self):
+        """Aktif servis katmanını döndürür (DB veya In-Memory)."""
+        return in_memory_service if self.use_in_memory else db_service
 
     # --------------------------------------------------------------------------
     # CRUD: 1. CREATE (YENİ DUYURU OLUŞTURMA)
@@ -51,7 +69,7 @@ class AnnouncementController:
 
         # Validasyon: Başlık ve İçerik kontrolü
         if not (title and content):
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
                 "error": "Lütfen Duyuru Başlığı ve İçerik alanlarını eksiksiz doldurunuz.",
@@ -59,20 +77,20 @@ class AnnouncementController:
             }, status=400)
 
         try:
-            new_ann = announcement_service.create_announcement(
+            new_ann = self.service.create_announcement(
                 title=title,
                 content=content,
                 author=author,
                 category=category,
                 is_active=is_active,
             )
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
-                "success": f"'{new_ann.title}' başlıklı duyuru başarıyla yayınlandı!",
+                "success": f"'{new_ann.title}' başlıklı duyuru veritabanına başarıyla kaydedildi!",
             }, status=201)
         except AnnouncementValidationError as e:
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
                 "error": str(e),
@@ -86,13 +104,13 @@ class AnnouncementController:
         """Duyuruları listeler; filtreleme ve arama parametrelerini uygular."""
         keyword = request.GET.get("q") or request.GET.get("keyword")
         category = request.GET.get("category")
-        
+
         if keyword or (category and category != "Tümü"):
-            announcements = announcement_service.filter_announcements(
+            announcements = self.service.filter_announcements(
                 keyword=keyword, category=category
             )
         else:
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
 
         return render(request, "announcements.html", {
             "announcements": announcements,
@@ -102,9 +120,9 @@ class AnnouncementController:
 
     def detail(self, request: HttpRequest, announcement_id: int) -> HttpResponse:
         """Tekil duyuru detayını görüntüler."""
-        ann = announcement_service.get_announcement(announcement_id)
+        ann = self.service.get_announcement(announcement_id)
         if not ann:
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
                 "error": f"{announcement_id} ID'li duyuru bulunamadı.",
@@ -134,14 +152,14 @@ class AnnouncementController:
             if is_active_raw is not None:
                 kwargs["is_active"] = is_active_raw in ("1", "true", "on", "yes", True)
 
-            updated = announcement_service.patch_announcement(announcement_id, **kwargs)
-            announcements = announcement_service.get_all_announcements()
+            updated = self.service.patch_announcement(announcement_id, **kwargs)
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
-                "success": f"'{updated.title}' duyurusu başarıyla güncellendi.",
+                "success": f"'{updated.title}' duyurusu veritabanında başarıyla güncellendi.",
             })
         except Exception as e:
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
                 "error": str(e),
@@ -153,14 +171,14 @@ class AnnouncementController:
     def delete(self, request: HttpRequest, announcement_id: int) -> HttpResponse:
         """Duyuruyu siler."""
         try:
-            deleted = announcement_service.delete_announcement(announcement_id)
-            announcements = announcement_service.get_all_announcements()
+            deleted = self.service.delete_announcement(announcement_id)
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
-                "success": f"'{deleted.title}' başlıklı duyuru silindi.",
+                "success": f"'{deleted.title}' başlıklı duyuru veritabanından silindi.",
             })
         except AnnouncementNotFoundError:
-            announcements = announcement_service.get_all_announcements()
+            announcements = self.service.get_all_announcements()
             return render(request, "announcements.html", {
                 "announcements": announcements,
                 "error": f"{announcement_id} ID'li duyuru bulunamadı.",
@@ -186,10 +204,10 @@ class AnnouncementController:
             return HttpResponseNotAllowed(["GET", "POST"])
 
     @classmethod
-    def as_view(cls, **initkwargs):
+    def as_view(cls, use_in_memory: bool = False, **initkwargs):
         """Django Class-Based View standardında görünüm fonksiyonu üretir."""
         def view(request: HttpRequest, *args, **kwargs) -> HttpResponse:
-            self = cls(**initkwargs)
+            self = cls(use_in_memory=use_in_memory, **initkwargs)
             return self.dispatch(request, *args, **kwargs)
         view.view_class = cls
         return csrf_exempt(view)

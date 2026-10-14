@@ -23,3 +23,13 @@ media/
 .idea/
 .DS_Store
 *.swp
+
+# Environment variables & Sensitive Credentials (GÜVENLİK ÖNLEMİ)
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+!.env.example
+!env.example
+!.example.env

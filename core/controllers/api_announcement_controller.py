@@ -5,6 +5,9 @@ Bu modül, REST API istemcilerinden gelen JSON isteklerini karşılayan,
 durum kodlarını (200, 201, 400, 404, 405) ve JSON çıktılarını yöneten,
 standart HTTP fiilleri (GET, POST, PUT, PATCH, DELETE) üzerinden tam CRUD
 operasyonlarını icra eden ApiAnnouncementController sınıfını içerir.
+
+Veritabanı (Django ORM) veya bellek içi (In-Memory) deposunu destekler.
+Varsayılan olarak veritabanı (Database Connection) modunda çalışır.
 """
 
 import json
@@ -13,7 +16,9 @@ from typing import Optional, Dict, Any
 from django.http import HttpRequest, JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 
-import announcement as announcement_service
+# Veritabanı ve In-Memory Servis Katmanları
+from core.services import announcement_service as db_service
+import announcement as in_memory_service
 from announcement_model import AnnouncementValidationError, AnnouncementNotFoundError
 
 
@@ -49,6 +54,19 @@ class ApiAnnouncementController:
     - DELETE: DELETE /api/announcements/<id>/ (200 OK / 404)
     """
 
+    def __init__(self, use_in_memory: bool = False):
+        """
+        Args:
+            use_in_memory (bool): False ise veritabanını (Django ORM) kullanır.
+                                  True ise bellek içi (In-Memory) deposunu kullanır.
+        """
+        self.use_in_memory = use_in_memory
+
+    @property
+    def service(self):
+        """Aktif servis katmanını döndürür (DB veya In-Memory)."""
+        return in_memory_service if self.use_in_memory else db_service
+
     # --------------------------------------------------------------------------
     # CRUD: 1. CREATE (POST /api/announcements/)
     # --------------------------------------------------------------------------
@@ -71,7 +89,7 @@ class ApiAnnouncementController:
             }, status=400)
 
         try:
-            new_ann = announcement_service.create_announcement(
+            new_ann = self.service.create_announcement(
                 title=title,
                 content=content,
                 author=author,
@@ -96,35 +114,37 @@ class ApiAnnouncementController:
         only_active = request.GET.get("active") == "true"
 
         if keyword or category:
-            items = announcement_service.filter_announcements(keyword=keyword, category=category)
+            items = self.service.filter_announcements(
+                keyword=keyword, category=category, only_active=only_active
+            )
         else:
-            items = announcement_service.get_all_announcements(only_active=only_active)
+            items = self.service.get_all_announcements(only_active=only_active)
 
-        ann_list = [a.to_dict() for a in items]
         return JsonResponse({
             "status": "success",
-            "count": len(ann_list),
-            "announcements": ann_list,
+            "count": len(items),
+            "announcements": [item.to_dict() for item in items]
         }, status=200)
 
     def detail(self, request: HttpRequest, announcement_id: int) -> JsonResponse:
-        """Belirtilen ID'ye sahip tekil duyuruyu döndürür."""
-        ann = announcement_service.get_announcement(announcement_id)
+        """Tekil duyuru detayını JSON olarak döndürür."""
+        ann = self.service.get_announcement(announcement_id)
         if not ann:
             return JsonResponse({
                 "status": "error",
                 "message": f"{announcement_id} ID'li duyuru bulunamadı."
             }, status=404)
+
         return JsonResponse({
             "status": "success",
             "announcement": ann.to_dict()
         }, status=200)
 
     # --------------------------------------------------------------------------
-    # CRUD: 3. UPDATE (PUT & PATCH /api/announcements/<id>/)
+    # CRUD: 3. UPDATE (PUT /api/announcements/<id>/)
     # --------------------------------------------------------------------------
     def update(self, request: HttpRequest, announcement_id: int) -> JsonResponse:
-        """Duyuruyu tam günceller (PUT). Tüm alanlar zorunludur."""
+        """Duyuruyu tüm alanlarıyla tam günceller (PUT)."""
         data = extract_json_payload(request)
         if data is None:
             return JsonResponse({"status": "error", "message": "Geçersiz JSON formatı."}, status=400)
@@ -132,102 +152,125 @@ class ApiAnnouncementController:
         title = str(data.get("title") or data.get("baslik") or "").strip()
         content = str(data.get("content") or data.get("icerik") or "").strip()
         author = str(data.get("author") or data.get("yazar") or "").strip()
-        category = str(data.get("category") or data.get("kategori") or "Genel").strip()
-        is_active = data.get("is_active", data.get("aktif_mi", True))
+        category = str(data.get("category") or data.get("kategori") or "").strip()
+        is_active = data.get("is_active", data.get("aktif_mi"))
 
-        if not (title and content and author):
+        if not (title and content):
             return JsonResponse({
                 "status": "error",
-                "message": "PUT metodu tam güncelleme gerektirir. 'title', 'content' ve 'author' zorunludur."
+                "message": "PUT güncellemesinde 'title' ve 'content' zorunludur."
             }, status=400)
 
         try:
-            updated = announcement_service.update_announcement(
+            updated = self.service.update_announcement(
                 announcement_id=announcement_id,
                 title=title,
                 content=content,
-                author=author,
-                category=category,
+                author=author or None,
+                category=category or None,
                 is_active=is_active,
             )
             return JsonResponse({
                 "status": "success",
-                "message": "Duyuru başarıyla güncellendi (PUT).",
+                "message": "Duyuru başarıyla güncellendi.",
                 "announcement": updated.to_dict()
             }, status=200)
         except AnnouncementNotFoundError:
-            return JsonResponse({"status": "error", "message": f"{announcement_id} ID'li duyuru bulunamadı."}, status=404)
+            return JsonResponse({
+                "status": "error",
+                "message": f"{announcement_id} ID'li duyuru bulunamadı."
+            }, status=404)
         except AnnouncementValidationError as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-    def partial_update(self, request: HttpRequest, announcement_id: int) -> JsonResponse:
-        """Duyuruyu kısmi günceller (PATCH)."""
+    # --------------------------------------------------------------------------
+    # CRUD: 4. PATCH (PATCH /api/announcements/<id>/)
+    # --------------------------------------------------------------------------
+    def patch(self, request: HttpRequest, announcement_id: int) -> JsonResponse:
+        """Duyuruyu kısmi olarak günceller (PATCH)."""
         data = extract_json_payload(request)
         if data is None:
             return JsonResponse({"status": "error", "message": "Geçersiz JSON formatı."}, status=400)
 
         try:
-            updated = announcement_service.patch_announcement(announcement_id=announcement_id, **data)
+            updated = self.service.patch_announcement(announcement_id, **data)
             return JsonResponse({
                 "status": "success",
-                "message": "Duyuru kısmi olarak güncellendi (PATCH).",
+                "message": "Duyuru kısmi olarak güncellendi.",
                 "announcement": updated.to_dict()
             }, status=200)
         except AnnouncementNotFoundError:
-            return JsonResponse({"status": "error", "message": f"{announcement_id} ID'li duyuru bulunamadı."}, status=404)
+            return JsonResponse({
+                "status": "error",
+                "message": f"{announcement_id} ID'li duyuru bulunamadı."
+            }, status=404)
         except AnnouncementValidationError as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
+    def partial_update(self, request: HttpRequest, announcement_id: int) -> JsonResponse:
+        """Kısmi güncelleme (PATCH) için URLconf uyumluluk metodu."""
+        return self.patch(request, announcement_id)
+
     # --------------------------------------------------------------------------
-    # CRUD: 4. DELETE (DELETE /api/announcements/<id>/)
+    # CRUD: 5. DELETE (DELETE /api/announcements/<id>/)
     # --------------------------------------------------------------------------
     def delete(self, request: HttpRequest, announcement_id: Optional[int] = None) -> JsonResponse:
-        """Duyuru kaydını siler."""
-        data = extract_json_payload(request) or {}
-        target_id = announcement_id or data.get("id") or request.GET.get("id")
+        """Duyuruyu siler (DELETE)."""
+        target_id = announcement_id
+        if target_id is None:
+            data = extract_json_payload(request)
+            if data and ("id" in data or "announcement_id" in data):
+                target_id = int(data.get("id") or data.get("announcement_id"))
 
-        if not target_id:
+        if target_id is None:
             return JsonResponse({
                 "status": "error",
-                "message": "Silinecek duyuru ID'si belirtilmelidir."
+                "message": "Silinecek duyuru kimliği ('id') belirtilmelidir."
             }, status=400)
 
         try:
-            deleted = announcement_service.delete_announcement(int(target_id))
+            deleted = self.service.delete_announcement(target_id)
             return JsonResponse({
                 "status": "success",
                 "message": f"'{deleted.title}' başlıklı duyuru silindi.",
-                "deleted_id": deleted.id,
-                "deleted_announcement": deleted.to_dict()
+                "deleted_id": target_id
             }, status=200)
         except AnnouncementNotFoundError:
-            return JsonResponse({"status": "error", "message": f"{target_id} ID'li duyuru bulunamadı."}, status=404)
+            return JsonResponse({
+                "status": "error",
+                "message": f"{target_id} ID'li duyuru bulunamadı."
+            }, status=404)
 
     # --------------------------------------------------------------------------
-    # CONTROLLER ENTRY POINT / DISPATCHER
+    # REST DISPATCHER & CBV KÖPRÜSÜ
     # --------------------------------------------------------------------------
     def dispatch(self, request: HttpRequest, announcement_id: Optional[int] = None) -> JsonResponse:
-        """HTTP metoduna göre ilgili CRUD metodunu çalıştırır."""
-        if request.method == "GET":
+        """HTTP fiiline göre ilgili metodu çalıştırır."""
+        method = request.method
+        if method == "GET":
             if announcement_id is not None:
                 return self.detail(request, announcement_id)
             return self.list(request)
-        elif request.method == "POST":
+        elif method == "POST":
             return self.create(request)
-        elif request.method == "PUT":
+        elif method == "PUT":
+            if announcement_id is None:
+                return JsonResponse({"status": "error", "message": "PUT için ID gereklidir."}, status=400)
             return self.update(request, announcement_id)
-        elif request.method == "PATCH":
-            return self.partial_update(request, announcement_id)
-        elif request.method == "DELETE":
+        elif method == "PATCH":
+            if announcement_id is None:
+                return JsonResponse({"status": "error", "message": "PATCH için ID gereklidir."}, status=400)
+            return self.patch(request, announcement_id)
+        elif method == "DELETE":
             return self.delete(request, announcement_id)
         else:
             return HttpResponseNotAllowed(["GET", "POST", "PUT", "PATCH", "DELETE"])
 
     @classmethod
-    def as_view(cls, **initkwargs):
-        """Django Class-Based View standardında görünüm fonksiyonu üretir."""
+    def as_view(cls, use_in_memory: bool = False, **initkwargs):
+        """Django URLconf için view callable döndürür."""
         def view(request: HttpRequest, *args, **kwargs) -> JsonResponse:
-            self = cls(**initkwargs)
+            self = cls(use_in_memory=use_in_memory, **initkwargs)
             return self.dispatch(request, *args, **kwargs)
         view.view_class = cls
         return csrf_exempt(view)

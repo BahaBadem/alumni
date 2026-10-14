@@ -2,12 +2,13 @@
 
 [![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Django Version](https://img.shields.io/badge/Django-6.1%2B-092E20.svg?logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![Database](https://img.shields.io/badge/Database-SQLite3-003B57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Database](https://img.shields.io/badge/Database-SQLite3%20%7C%20PostgreSQL%2016-003B57.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Container-Docker%20%26%20Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![API Spec](https://img.shields.io/badge/OpenAPI-3.0.0-85EA2D.svg?logo=openapi-initiative&logoColor=black)](./swagger.json)
-[![Architecture](https://img.shields.io/badge/Architecture-Clean%20MVC%20%2F%20SoC-orange.svg)](#-mimari-tasarım-django-mvtden-temiz-mvcyeye)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20(59%2F59)-brightgreen.svg)](#-test-ve-kalite-güvencesi)
+[![DDD Spec](https://img.shields.io/badge/Architecture-Domain--Driven%20Design%20(DDD)-7c3aed.svg)](./ddd.md)
+[![Tests](https://img.shields.io/badge/Tests-Passing%20(71%2F71)-brightgreen.svg)](#-test-ve-kalite-güvencesi)
 
-> **Web Programlama (Web Programming)** dersi kapsamında geliştirilen; mezunlar, öğrenciler ve üniversite yönetimi arasında köprü kurmayı hedefleyen modern, modüler ve yüksek standartlı bir **Mezun Yönetim Portalı** (Alumni Management Platform).
+> **Web Programlama (Web Programming)** dersi kapsamında geliştirilen; mezunlar, öğrenciler ve üniversite yönetimi arasında köprü kurmayı hedefleyen modern, modüler, veritabanı destekli ve yüksek standartlı bir **Mezun Yönetim Portalı** (Alumni Management Platform).
 
 ---
 
@@ -21,6 +22,12 @@
 - [🛠️ Teknoloji Yığını](#️-teknoloji-yığını)
 - [✨ Temel Özellikler](#-temel-özellikler)
 - [🚦 Gerçekleştirilen Rotalar ve API Kataloğu](#-gerçekleştirilen-rotalar-ve-api-kataloğu)
+  - [Web Kullanıcı Arayüzü Rotaları](#-web-kullanıcı-arayüzü-rotaları)
+  - [REST API Uç Noktaları](#-rest-api-uç-noktaları)
+- [🌱 Database Factory ve Idempotent Seeder Mimarisi](#-database-factory-ve-idempotent-seeder-mimarisi)
+- [🐳 Docker ve Konteynerizasyon Altyapısı](#-docker-ve-konteynerizasyon-altyapısı)
+- [🔐 Ortam Değişkenleri ve Güvenlik Önlemleri](#-ortam-değişkenleri-ve-güvenlik-önlemleri)
+- [📐 Domain-Driven Database Design (`ddd.md`) Sözleşmesi](#-domain-driven-database-design-dddmd-sözleşmesi)
 - [📄 Swagger / OpenAPI 3.0 Dokümantasyonu](#-swagger--openapi-30-dokümantasyonu)
 - [💻 Yerel Kurulum ve Çalıştırma (Local Development)](#-yerel-kurulum-ve-çalıştırma-local-development)
 - [🧪 Test ve Kalite Güvencesi](#-test-ve-kalite-güvencesi)
@@ -31,17 +38,15 @@
 
 ## 📖 Proje Hakkında ve Vizyon
 
-**Alumni Portal**, üniversite mezunlarının kariyer gelişimlerini desteklemek, mevcut lisans/önlisans öğrencileri ile mezunlar arasında mentorluk ve staj/iş bağlantıları kurmak, üniversite etkinlik ve duyurularını tek bir çatı altında toplamak amacıyla tasarlanmıştır.
+**Alumni Portal**, üniversite mezunlarının kariyer gelişimlerini desteklemek, mevcut öğrenciler ile mezunlar arasında mentorluk köprüleri kurmak, üniversite etkinlik ve duyurularını tek bir çatı altında toplamak amacıyla geliştirilmektedir.
 
-Proje, kurumsal yazılım standartlarına uygun olarak geliştirilmekte olup; **sürdürülebilirlik**, **yüksek test kapsamı**, **açık API dokümantasyonu** ve **katmanlı mimari prensipleri** ön planda tutulmaktadır.
+Projede **Domain-Driven Design (DDD)** ilkeleri, **Temiz MVC mimarisi**, **kalıcı ilişkisel veritabanı (SQLite & PostgreSQL)**, **idempotent seeder altyapısı** ve **kapsamlı otomasyon testleri** (71 test) esastır.
 
 ---
 
 ## 🏛️ Mimari Tasarım: Django MVT'den Temiz MVC'ye
 
-Geleneksel Django projeleri **MVT (Model-View-Template)** deseni üzerinde şekillenir. Ancak modern kurumsal uygulamalarda bu yaklaşım sıklıkla `views.py` dosyalarının aşırı büyümesine (*Fat Views anti-pattern*), iş mantığının (business logic) sunum kodlarına karışmasına ve kodun test edilebilirliğinin düşmesine yol açar.
-
-Bu projede, Django'nun yerleşik gücü korunarak **Temiz MVC (Model-View-Controller)** ve **Servis Odaklı Katmanlı Mimari (Service-Layered Architecture)** prensipleri standardize edilmiştir:
+Geleneksel Django projeleri `views.py` dosyalarında aşırı kod birikmesine (*Fat Views anti-pattern*) yol açabilir. Projemizde kurumsal standartlarda **Temiz MVC (Model-View-Controller)** ve **Servis Katmanı (Service Layer)** uygulanmıştır:
 
 ```mermaid
 flowchart TD
@@ -52,22 +57,24 @@ flowchart TD
 
     subgraph ControllerLayer ["2. Controller / Yönlendirme Katmanı"]
         Urls["URL Router (core/urls.py)"]
-        WebControllers["Web Controllers (core/views/web_views.py)"]
-        ApiControllers["API Controllers (core/views/api_views.py)"]
+        WebControllers["Web Controllers (UserController, AnnouncementController)"]
+        ApiControllers["API Controllers (ApiUserController, ApiAnnouncementController)"]
     end
 
     subgraph ServiceLayer ["3. İş Mantığı / Servis Katmanı (Domain Logic)"]
-        Services["Domain Services (core/services/user_service.py)"]
+        UserServices["User Services (core/user.py & in-memory)"]
+        AnnServices["Announcement Services (core/services/announcement_service.py)"]
     end
 
     subgraph ModelLayer ["4. Model / Veri Katmanı (Data Access Layer)"]
-        Models["Django ORM Models (core/models/user_profile.py)"]
-        Database[("SQLite3 Veritabanı")]
+        ORMModels["Django ORM (UserProfile, Announcement)"]
+        Database[("Veritabanı: SQLite3 / PostgreSQL 16")]
+        Factories["Factories & Seeders (core/database/)"]
     end
 
     subgraph PresentationLayer ["5. View / Sunum Katmanı (Presentation)"]
-        Templates["HTML / Jinja Templates (templates/*.html)"]
-        Serializers["Serializers / DTOs (core/serializers/user_serializer.py)"]
+        Templates["HTML Şablonları (templates/*.html)"]
+        Serializers["JSON DTOs & Serializers"]
     end
 
     Browser -->|HTTP GET/POST| Urls
@@ -76,14 +83,15 @@ flowchart TD
     Urls --> WebControllers
     Urls --> ApiControllers
 
-    WebControllers -->|İş İstekleri| Services
-    ApiControllers -->|İş İstekleri| Services
+    WebControllers -->|İş İstekleri| AnnServices
+    WebControllers -->|İş İstekleri| UserServices
+    ApiControllers -->|İş İstekleri| AnnServices
+    ApiControllers -->|İş İstekleri| UserServices
 
-    Services -->|İş Mantığı & Doğrulama| Models
-    Models <--> Database
-
-    Services -->|İşlenmiş Veri| WebControllers
-    Services -->|İşlenmiş Veri| ApiControllers
+    AnnServices -->|ORM / SQL| ORMModels
+    UserServices -->|ORM / SQL| ORMModels
+    Factories -.->|Veri Tohumlama| ORMModels
+    ORMModels <--> Database
 
     WebControllers -->|Context Data| Templates
     ApiControllers -->|DTO Data| Serializers
@@ -96,91 +104,90 @@ flowchart TD
 
 | Klasik MVC | Django Karşılığı | Projedeki Konumu | Sorumluluk ve İlkeler |
 | :--- | :--- | :--- | :--- |
-| **Model (M)** | Model | `core/models/` | **Veri & Şema Katmanı:** Veritabanı tablolarının temsili, veri bütünlüğü kısıtlamaları, ORM tanımları ve meta bilgiler. Kesinlikle doğrudan HTTP veya sunum mantığı içermez. |
-| **View (V)** | Template & Serializer | `templates/` & `core/serializers/` | **Sunum Katmanı (Presentation):** Kullanıcıya gösterilecek çıktının hazırlanması. Web için HTML şablonları; REST API için veri dönüşümü, doğrulama (validation) ve DTO (Data Transfer Object) çıktıları. |
-| **Controller (C)** | View & Routing | `core/views/` & `core/urls.py` | **İstek Karşılama & Orkestrasyon:** Gelen HTTP isteklerini yakalar, parametreleri ayıklar, ilgili servis katmanını çağırır ve uygun HTTP durum kodu (Status Code) ile yanıtı döner. |
-| **Service Layer** | Business Logic | `core/services/` | **Temel İş Mantığı (Domain Logic):** Veritabanı sorgu orkestrasyonu, iş kuralları, validasyon kuralları ve domain operasyonları burada icra edilir (*Skinny Controller, Rich Service*). |
+| **Model (M)** | Model | `core/models.py` | **Veri & Şema Katmanı:** Veritabanı tabloları (`core_userprofile`, `core_announcement`), ORM kısıtları, indeksler ve veri bütünlüğü. |
+| **View (V)** | Template & DTO | `templates/` & JSON DTO | **Sunum Katmanı:** HTML şablonları veya REST JSON DTO yanıtlarının hazırlanması. |
+| **Controller (C)** | View & Controller | `core/controllers/` | **İstek Karşılama & Orkestrasyon:** HTTP fiillerini karşılar, yetkilendirmeyi ve servis çağrılarını yönetir. |
+| **Service Layer** | Business Logic | `core/services/` | **İş Mantığı (Domain):** Validasyonlar, filtreleme algoritmaları, ACID transaction yönetimi (*Skinny Controller, Rich Service*). |
 
 ---
 
 ## 📂 Proje Dizin Yapısı
 
-Standardize edilmiş proje dizini, sorumlulukların net ayrımı gözetilerek aşağıdaki şekilde organize edilmiştir:
+Standardize edilmiş proje mimarisi aşağıdaki şekilde organize edilmiştir:
 
 ```text
 alumni/
-├── manage.py                   # Django yönetim komut satırı aracı
-├── requirements.txt            # Proje bağımlılıkları ve kütüphaneler
-├── swagger.json                # OpenAPI 3.0 REST API spesifikasyon dosyası
-├── db.sqlite3                  # SQLite veritabanı dosyası (ACID uyumlu)
+├── manage.py                   # Django yönetim aracı (CLI)
+├── requirements.txt            # Python bağımlılıkları (Django, psycopg2-binary vb.)
+├── swagger.json                # OpenAPI 3.0 REST API spesifikasyon sözleşmesi
+├── ddd.md                      # [DDD] Domain-Driven Database Design reçetesi & sözleşmesi
+├── db.sqlite3                  # Yerel SQLite3 ACID veritabanı
+├── db.sqlite3.backup           # Canlı veri koruma yedeği
+├── Dockerfile                  # Container imaj tanımı (Python 3.11-slim)
+├── docker-compose.yml          # Standart Docker Compose orkestrasyonu (Web + PostgreSQL)
+├── docker_compose.yml          # Docker Compose alternatif alias dosyası
+├── .dockerignore               # Container build context filtre kuralları
+├── .env                        # [GİZLİ] Yerel ortam değişkenleri ve secret anahtarlar (chmod 600)
+├── env.example                 # Ortam değişkenleri örnek şablonu
+├── .example.env                # Alternatif ortam değişkenleri şablonu
+├── .env.example                # Docker uyumlu ortam değişkenleri şablonu
+├── .gitignore                  # Git sızıntı önleme ve dosya dışlama kuralları
 ├── README.md                   # Proje ana dokümantasyonu ve mimari rehber
-├── model.py                    # [Domain Model] DB bağımsız saf Python User sınıfı
-├── user.py                     # [In-Memory CRUD] DB bağımsız User CRUD fonksiyonları
-├── announcement_model.py       # [Domain Model] DB bağımsız saf Python Announcement sınıfı
-├── announcement.py             # [In-Memory CRUD] DB bağımsız Announcement CRUD fonksiyonları
-├── controllers.py              # [MVC Controllers] Controller köprüsü
-├── test_in_memory_user.py      # [Unit Tests] In-memory model ve User CRUD testleri
-├── test_controllers.py         # [Unit Tests] User Controller test paketi
-├── test_announcements.py       # [Unit Tests] Announcement model, CRUD ve Controller testleri
 │
 ├── core/                       # Çekirdek uygulama ve proje konfigürasyonu
 │   ├── __init__.py
 │   ├── apps.py                 # Core uygulama yapılandırması
-│   ├── settings.py             # Django global ayarları (DB, Templates, Apps)
+│   ├── settings.py             # Akıllı veritabanı (Postgres/SQLite) ve güvenlik ayarları
 │   ├── urls.py                 # Merkezi rota tanımları ve URL mapping
-│   ├── wsgi.py                 # WSGI web sunucu giriş noktası
-│   ├── asgi.py                 # Asenkron ASGI giriş noktası
-│   ├── model.py                # Core paketi için model köprüsü
-│   ├── user.py                 # Core paketi için user CRUD köprüsü
-│   ├── views.py                # Controller delegasyonları ve view yönlendirmeleri
+│   ├── admin.py                # Django Admin panel kayıtları (UserProfile & Announcement)
+│   ├── models.py               # [ORM] UserProfile ve Announcement veritabanı modelleri
+│   ├── views.py                # View yönlendirmeleri ve controller köprüleri
 │   │
 │   ├── controllers/            # [C] CONTROLLER KATMANI (Temiz MVC)
-│   │   ├── __init__.py
-│   │   ├── user_controller.py             # UserController: Web HTML şablon ve form CRUD
-│   │   ├── api_user_controller.py         # ApiUserController: REST API JSON CRUD
-│   │   ├── announcement_controller.py     # AnnouncementController: Web HTML Duyuru CRUD
-│   │   ├── api_announcement_controller.py # ApiAnnouncementController: REST API Duyuru CRUD
+│   │   ├── user_controller.py             # UserController: Web HTML Kullanıcı CRUD
+│   │   ├── api_user_controller.py         # ApiUserController: REST API Kullanıcı CRUD
+│   │   ├── announcement_controller.py     # AnnouncementController: Web HTML Duyuru CRUD (DB Connected)
+│   │   ├── api_announcement_controller.py # ApiAnnouncementController: REST API Duyuru CRUD (DB Connected)
 │   │   ├── user_urls.py                   # Web User rotaları
 │   │   ├── api_urls.py                    # REST API User rotaları
 │   │   ├── announcement_urls.py           # Web Announcement rotaları
 │   │   └── api_announcement_urls.py       # REST API Announcement rotaları
 │   │
-│   ├── models/                 # [M] MODEL KATMANI: Veritabanı ORM modelleri
+│   ├── services/               # [Service Layer] VERİTABANI SERVİS KATMANI
 │   │   ├── __init__.py
-│   │   └── user_profile.py     # UserProfile modeli (ad, doğum tarihi, şehir, okul)
+│   │   └── announcement_service.py # Veritabanı Duyuru CRUD ve iş mantığı operasyonları
 │   │
-│   ├── views/                  # [Presentation/Routing]: HTTP işleyicileri
+│   ├── database/               # [Factory & Seeder] VERİTABANI TOHUMLAMA MİMARİSİ
 │   │   ├── __init__.py
-│   │   ├── api_views.py        # REST API Controller köprüsü
-│   │   ├── web_views.py        # Web Controller köprüsü
-│   │   └── demo_views.py       # Temel rota ve matematiksel hesaplama view'ları
+│   │   ├── base.py             # BaseFactory ve BaseSeeder soyut sınıfları
+│   │   ├── data_pools.py       # Zengin Türkçe isim, şehir, okul ve duyuru havuzları
+│   │   ├── factories/          # Model Factories (UserProfileFactory, AnnouncementFactory)
+│   │   └── seeders/            # Idempotent Seeders (User, Announcement, DatabaseSeeder)
 │   │
-│   ├── services/               # [C/Domain] SERVİS KATMANI: İş mantığı operasyonları
-│   │   ├── __init__.py
-│   │   └── user_service.py     # Kullanıcı kayıt, arama, güncelleme, silme servisleri
-│   │
-│   ├── serializers/            # [V] PRESENTATION KATMANI: API DTO & Validasyon
-│   │   ├── __init__.py
-│   │   └── user_serializer.py  # UserProfile DTO, dict/json dönüşümü ve validasyon
+│   ├── management/             # DJANGO CUSTOM CLI KOMUTLARI
+│   │   └── commands/
+│   │       └── seed.py         # `python manage.py seed` komutu
 │   │
 │   ├── migrations/             # Veritabanı şema göç dosyaları
-│   │   ├── __init__.py
-│   │   └── 0001_initial.py     # İlk kullanıcı modeli şema migrasyonu
+│   │   ├── 0001_initial.py     # UserProfile tablosu göçü
+│   │   └── 0002_announcement.py # Announcement tablosu göçü
 │   │
-│   └── tests/                  # [QA] TEST KATMANI: Kapsamlı test paketleri
-│       ├── __init__.py
-│       ├── test_models.py      # Model birim testleri
-│       ├── test_serializers.py # Serializer / DTO testleri
-│       ├── test_services.py    # İş mantığı ve servis testleri
-│       ├── test_api_views.py   # REST API uç nokta entegrasyon testleri
-│       ├── test_web_views.py   # Web şablon ve sayfa testleri
-│       └── test_demo_views.py  # Demo ve yardımcı rota testleri
+│   └── tests.py                # Django test paketi (43 test: Model, View, Seeder, DB CRUD)
 │
-└── templates/                  # [V] VIEW KATMANI: HTML Görünümleri
-    ├── index.html              # Ana karşılama sayfası ve interaktif rota test paneli
-    ├── about.html              # Proje hakkında bilgilendirme sayfası
-    ├── users.html              # Kullanıcı kayıt formu ve dinamik veri tablosu
-    └── swagger.html            # Canlı Swagger UI REST API dokümantasyon arayüzü
+├── templates/                  # [V] VIEW KATMANI: HTML Görünümleri
+│   ├── index.html              # Ana karşılama sayfası ve interaktif rota paneli
+│   ├── about.html              # Proje hakkında bilgilendirme sayfası
+│   ├── users.html              # Kullanıcı kayıt formu ve veri tablosu
+│   ├── announcements.html      # Veritabanı destekli Duyuru Yönetim Paneli
+│   └── swagger.html            # Canlı Swagger UI REST API dokümantasyon konsolu
+│
+├── model.py                    # Saf Python User domain modeli
+├── user.py                     # In-memory User CRUD servisi
+├── announcement_model.py       # Saf Python Announcement domain modeli
+├── announcement.py             # In-memory Announcement CRUD servisi
+├── test_controllers.py         # User Controller testleri (7 test)
+├── test_announcements.py       # Announcement Controller in-memory testleri (9 test)
+└── test_in_memory_user.py      # In-memory User CRUD testleri (12 test)
 ```
 
 ---
@@ -191,84 +198,158 @@ alumni/
 | :--- | :--- | :--- |
 | **Backend Dili** | [Python 3.11+](https://www.python.org/) | Tip güvenliği ve modern Python özellikleri |
 | **Web Çatısı** | [Django 6.1+](https://www.djangoproject.com/) | Kurumsal seviye MVC web mimarisi |
-| **Veritabanı** | [SQLite3](https://www.sqlite.org/) | Hafif, dosya tabanlı, yerel geliştirme için sıfır-konfigürasyon ACID veritabanı |
+| **İlişkisel Veritabanı** | [SQLite3](https://www.sqlite.org/) / [PostgreSQL 16](https://www.postgresql.org/) | Akıllı hibrit mimari: Yerelde SQLite3, Docker'da PostgreSQL |
+| **Konteynerizasyon** | [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) | İzole geliştirme ortamı ve mikro servis mimarisi |
+| **Tohumlama & Test Verisi**| Custom Factory & Seeder | Modüler, tip güvenli ve %100 idempotent veri üretimi |
 | **API Standartı** | [OpenAPI 3.0.0](https://swagger.io/specification/) | Endüstri standardı REST API şeması |
 | **API Arayüzü** | [Swagger UI](https://swagger.io/tools/swagger-ui/) | Etkileşimli API test ve dokümantasyon konsolu |
 | **Frontend** | HTML5, CSS3, JavaScript | Modern, duyarlı ve kullanıcı dostu arayüzler |
-| **Test Çerçevesi** | Django Test Framework (unittest) | Otomatize birim ve uçtan uca entegrasyon testleri |
+| **Test Çerçevesi** | Django Test Framework (unittest) | 71 otomatize birim ve entegrasyon testi (%100 Başarılı) |
 
 ---
 
 ## ✨ Temel Özellikler
 
-- **🔒 Rol Tabanlı Yetkilendirme Altyapısı (RBAC Temeli):** Öğrenci, mezun ve yönetici rolleri için genişletilebilir mimari.
-- **⚡ Kapsamlı Kullanıcı CRUD Sistemi:**
-  - Web üzerinden kolay form girişi ve tablo üzerinde gerçek zamanlı listeleme.
-  - REST API üzerinden standart HTTP fiilleri (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) ile tam yönetim.
-- **🧩 Çift Dilli Parametre Desteği:** API isteklerinde ve formlarda hem Türkçe (`isim`, `dogum_tarihi`, `sehir`, `okul`) hem de İngilizce (`name`, `birth_date`, `city`, `school`) alan desteği.
-- **🛡️ Katı Validasyon & Hata Yönetimi:** Tarih ayrıştırma (`YYYY-AA-GG`, `GG.AA.YYYY` vb.), eksik alan denetimi ve anlamlı HTTP hata kodları (`400 Bad Request`, `404 Not Found`, `405 Method Not Allowed`).
-- **📖 Canlı Swagger Dokümantasyonu:** Yerleşik Swagger UI üzerinden doğrudan tarayıcıdan API çağrıları yapabilme.
+- **🗄️ Veritabanı Destekli Çift Modüllü CRUD (Users & Announcements):**
+  - Hem Kullanıcılar hem de Duyurular doğrudan ilişkisel veritabanına (`db.sqlite3` / PostgreSQL) bağlıdır.
+  - Sunucu kapansa dahi veriler kalıcı olarak korunur.
+- **🌱 Idempotent Veritabanı Seeder Mimarisi:**
+  - Tekrarlı çalıştırmalarda mükerrer kayıt üretmeyen akıllı tohumlama sistemi (`python manage.py seed`).
+- **🐳 Sıfır Konfigürasyonlu Docker Altyapısı:**
+  - PostgreSQL 16 veritabanı, sağlık kontrolü (`healthcheck`), kalıcı volume ve canlı reload ile tek komutta hazır.
+- **🔐 Kurumsal Güvenlik ve Gizlilik Standartları:**
+  - Kriptografik anahtarlar, `.env` dosya izinleri (`chmod 600`), `.gitignore` ve `.dockerignore` sızıntı korumaları.
+- **🧩 Çift Dilli Parametre Desteği:**
+  - Hem formlarda hem API'da Türkçe (`isim`, `dogum_tarihi`, `sehir`, `okul`, `baslik`, `icerik`) ve İngilizce (`name`, `birth_date`, `city`, `school`, `title`, `content`) tam uyumluluk.
+- **🛡️ Katı Validasyon & Hata Yönetimi:**
+  - Karakter limitleri, eksik alan kontrolleri ve anlamlı HTTP durum kodları (`200`, `201`, `400`, `404`, `405`).
 
 ---
 
 ## 🚦 Gerçekleştirilen Rotalar ve API Kataloğu
 
-### 🌐 Web Kullanıcı Arayüzü Rotaları (CRUD)
+### 🌐 Web Kullanıcı Arayüzü Rotaları
 
 | Metot | Rota | Controller / View | CRUD Operasyonu | Çıktı / Şablon |
 | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/` | `home` | Landing Page | `templates/index.html` |
 | `GET` | `/about/` | `about` | Bilgilendirme | `templates/about.html` |
-| `GET` | `/users/` *(veya `/users/list/`)* | `user_list_view` | **READ ALL:** Kullanıcı listesi & form | `templates/users.html` |
-| `POST` | `/users/` *(veya `/users/create/`)* | `user_create_view` | **CREATE:** Formdan yeni kullanıcı kaydı | `templates/users.html` (`201`) |
-| `GET` | `/users/<int:user_id>/` | `user_detail_view` | **READ SINGLE:** Tekil kullanıcı detayı | `templates/users.html` |
-| `POST` | `/users/<int:user_id>/update/` | `user_update_view` | **UPDATE:** Kullanıcı bilgilerini güncelleme | `templates/users.html` |
-| `POST` | `/users/<int:user_id>/delete/` | `user_delete_view` | **DELETE:** Kullanıcı kaydını silme | `templates/users.html` |
+| `GET` | `/users/` | `user_list_view` | **USER READ ALL:** Kullanıcı listesi & form | `templates/users.html` |
+| `POST`| `/users/create/` | `user_create_view` | **USER CREATE:** Yeni kullanıcı kaydı | `templates/users.html` (`201`) |
+| `GET` | `/users/<int:user_id>/` | `user_detail_view` | **USER READ SINGLE:** Tekil kullanıcı detayı | `templates/users.html` |
+| `POST`| `/users/<int:user_id>/update/` | `user_update_view` | **USER UPDATE:** Kullanıcı güncelleme | `templates/users.html` |
+| `POST`| `/users/<int:user_id>/delete/` | `user_delete_view` | **USER DELETE:** Kullanıcı silme | `templates/users.html` |
+| `GET` | `/announcements/` | `AnnouncementController` | **ANNOUNCEMENT READ:** Duyuru listesi & arama | `templates/announcements.html` |
+| `POST`| `/announcements/create/` | `AnnouncementController` | **ANNOUNCEMENT CREATE:** Veritabanına yeni duyuru | `templates/announcements.html` (`201`) |
+| `GET` | `/announcements/<int:id>/` | `AnnouncementController` | **ANNOUNCEMENT DETAIL:** Tekil duyuru detayı | `templates/announcements.html` |
+| `POST`| `/announcements/<int:id>/update/` | `AnnouncementController` | **ANNOUNCEMENT UPDATE:** Duyuru güncelleme | `templates/announcements.html` |
+| `POST`| `/announcements/<int:id>/delete/` | `AnnouncementController` | **ANNOUNCEMENT DELETE:** Duyuru silme | `templates/announcements.html` |
 
-### 🧪 Yardımcı & Demo Rotaları
+### 🚀 REST API Uç Noktaları
 
-| Metot | Rota | Controller / View | Açıklama | Örnek Yanıt |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/hello/` | `hello` | Statik karşılama mesajı | `"Hello, World!"` |
-| `GET` | `/hello/<str:name>/` | `hello` | Dinamik URL parametreli karşılama | `/hello/Baha/` ➔ `"Hello, Baha!"` |
-| `GET` | `/sum/<int:num1>/<int:num2>/` | `calculate_sum` | Matematiksel iki sayı toplama rotası | `/sum/15/25/` ➔ `"40"` |
+| Metot | Rota | Açıklama | Başarılı Yanıt |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/healt/` *(veya `/api/health/`)* | Sistem sağlık kontrolü (Health Check) | `200 OK` |
+| `GET` | `/api/users/` | Tüm kullanıcıları JSON listele | `200 OK` |
+| `POST`| `/api/users/` | Yeni kullanıcı kaydet (JSON body) | `201 Created` |
+| `GET` | `/api/users/<int:id>/` | Tekil kullanıcı detayı | `200 OK` *(Yoksa `404`)* |
+| `PUT` | `/api/users/<int:id>/` | Kullanıcıyı tam güncelle | `200 OK` *(Eksikse `400`)* |
+| `PATCH`| `/api/users/<int:id>/` | Kullanıcıyı kısmi güncelle | `200 OK` |
+| `DELETE`| `/api/users/<int:id>/` | Belirtilen kullanıcıyı sil | `200 OK` |
+| `GET` | `/api/announcements/` | Tüm duyuruları veritabanından listele | `200 OK` |
+| `POST`| `/api/announcements/` | Veritabanına yeni duyuru ekle (JSON body) | `201 Created` |
+| `GET` | `/api/announcements/<int:id>/` | Tekil duyuru JSON detayı | `200 OK` *(Yoksa `404`)* |
+| `PUT` | `/api/announcements/<int:id>/` | Duyuruyu tam güncelle (PUT) | `200 OK` |
+| `PATCH`| `/api/announcements/<int:id>/` | Duyuruyu kısmi güncelle (PATCH) | `200 OK` |
+| `DELETE`| `/api/announcements/<int:id>/` | Belirtilen duyuruyu sil (DELETE) | `200 OK` |
 
-### 🚀 REST API Uç Noktaları (CRUD)
+---
 
-| Metot | Rota | Controller / View | CRUD Operasyonu | Başarılı Yanıt Kodu |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/healt/` *(veya `/api/health/`)* | `health_check` | Health Check | `200 OK` |
-| `GET` | `/api/users/` *(veya `/api/users/list/`)* | `api_user_list_view` | **READ ALL:** Tüm kullanıcıları JSON listele | `200 OK` |
-| `POST` | `/api/users/` *(veya `/api/users/create/`)* | `api_user_create_view` | **CREATE:** JSON gövdesiyle kullanıcı oluştur | `201 Created` |
-| `GET` | `/api/users/<int:user_id>/` | `api_user_detail_view` | **READ SINGLE:** Tekil kullanıcı JSON detayı | `200 OK` *(Yoksa `404`)* |
-| `PUT` | `/api/users/<int:user_id>/` | `api_user_update_view` | **UPDATE (PUT):** Tüm alanları tam güncelle | `200 OK` *(Eksikse `400`)* |
-| `PATCH` | `/api/users/<int:user_id>/` | `api_user_patch_view` | **UPDATE (PATCH):** Verilen alanları kısmi güncelle | `200 OK` |
-| `DELETE` | `/api/users/<int:user_id>/` | `api_user_delete_view` | **DELETE:** Belirtilen kullanıcıyı sil | `200 OK` |
-| `DELETE` | `/api/users/?all=true` | `api_user_delete_view` | **DELETE ALL:** Tüm kayıtları temizle | `200 OK` |
+## 🌱 Database Factory ve Idempotent Seeder Mimarisi
 
-### 📑 API Dokümantasyon Rotaları
+Geliştirme ve test süreçlerinde tutarlı, gerçekçi ve tekrar çalıştırılabilir test verileri üretmek amacıyla `core/database/` altında kapsamlı bir **Factory & Seeder** mimarisi kurulmuştur:
 
-| Metot | Rota | Controller | Açıklama | Çıktı |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/swagger/` | `swagger_ui_view` | İnteraktif Swagger UI arayüzü | `templates/swagger.html` |
-| `GET` | `/api/swagger.json` | `swagger_json_view` | Canlı OpenAPI 3.0 şema JSON çıktısı | JSON (`swagger.json`) |
+```bash
+# 1. Standart tohumlama (10 kullanıcı, 5 duyuru - İdempotent)
+python manage.py seed
+
+# 2. Özel adetlerle tohumlama
+python manage.py seed --users 25 --announcements 10
+
+# 3. Sıfırlayarak baştan temiz tohumlama (Mevcut verileri temizler ve seed eder)
+python manage.py seed --fresh --no-input
+
+# 4. Deterministik tohumlama (Tekrarlanabilir random seed)
+python manage.py seed --seed 42
+
+# 5. Sadece çekirdek verileri tohumla (0 dinamik kayıt)
+python manage.py seed --users 0 --announcements 0
+```
+
+> **%100 Idempotent Güvencesi:** Çekirdek kayıtlar `filter().first()` ile sorgulanır. Komut üst üste 10 kez çalıştırılsa dahi mükerrer kayıt oluşturmaz!
+
+---
+
+## 🐳 Docker ve Konteynerizasyon Altyapısı
+
+Proje, hem Django web uygulamasını hem de **PostgreSQL 16** veritabanını içeren modern Docker Compose orkestrasyonuna sahiptir:
+
+```bash
+# Konteynerleri derleyip arka planda başlatın:
+docker compose -f docker_compose.yml up -d --build
+
+# Canlı web loglarını izleyin:
+docker compose -f docker_compose.yml logs -f web
+
+# Konteynerleri durdurun:
+docker compose -f docker_compose.yml down
+```
+
+- **Sağlık Kontrolü (`healthcheck`):** PostgreSQL `pg_isready` ile hazır olmadan Django ayağa kalkmaz.
+- **Kalıcı Veri:** `postgres_data` volume'ü ile konteyner silinse dahi veritabanı korunur.
+- **Canlı Senkronizasyon:** Kod değişiklikleri doğrudan konteyner içine yansır.
+
+---
+
+## 🔐 Ortam Değişkenleri ve Güvenlik Önlemleri
+
+- [**`.env`**](file:///Users/ahmetbahabuyukadem/Desktop/web_programing/alumni2/alumni/.env): Gerçek gizli anahtarları ve veritabanı şifrelerini içerir. Dosya izinleri `chmod 600` (`-rw-------`) olarak kilitlenmiştir.
+- [**`.gitignore`**](file:///Users/ahmetbahabuyukadem/Desktop/web_programing/alumni2/alumni/.gitignore) ve [**`.dockerignore`**](file:///Users/ahmetbahabuyukadem/Desktop/web_programing/alumni2/alumni/.dockerignore): `.env` dosyası ve varyasyonları Git deposuna veya Docker imajına kesinlikle dahil edilmez.
+- [**`env.example`**](file:///Users/ahmetbahabuyukadem/Desktop/web_programing/alumni2/alumni/env.example) / [**`.example.env`**](file:///Users/ahmetbahabuyukadem/Desktop/web_programing/alumni2/alumni/.example.env): Yeni kurulumlar için örnek şablon dosyalarıdır.
+
+```bash
+# Yeni bir ortamda kuruluma başlarken:
+cp env.example .env
+chmod 600 .env
+```
+
+---
+
+## 📐 Domain-Driven Database Design (`ddd.md`) Sözleşmesi
+
+Projenin veritabanı mimarisi, ERD şeması, bounded context haritası ve veri sözlüğü kök dizindeki [**`ddd.md`**](./ddd.md) dosyasında kayıt altına alınmıştır.
+
+> [!IMPORTANT]
+> ### ⚠️ Kritik Mimari Kural: `ddd.md` Senkronizasyon Sözleşmesi
+> 
+> 1. Veritabanı modellerinde (`core/models.py`), migration'larda veya tablolarda yeni bir alan eklendiğinde, silindiğinde ya da değiştirildiğinde,
+> 2. `README.md` dosyasında veritabanını, şemaları veya veri mimarisini ilgilendiren herhangi bir güncelleme yapıldığında,
+> 3. Domain iş kuralları veya Bounded Context sınırları genişletildiğinde,
+> 
+> **Kök dizindeki [`ddd.md`](./ddd.md) dosyasının da EŞZAMANLI olarak güncellenmesi zorunludur.**  
+> `ddd.md` bu projenin yaşayan veritabanı tasarım reçetesidir; kod ve dokümantasyon arasındaki bütünlük asla bozulamaz.
 
 ---
 
 ## 📄 Swagger / OpenAPI 3.0 Dokümantasyonu
 
-Projedeki tüm REST API uç noktaları **OpenAPI 3.0** standardına uygun olarak titizlikle şemalandırılmıştır:
+Projedeki tüm REST API uç noktaları **OpenAPI 3.0** standardına uygun olarak şemalandırılmıştır:
 
-- 🌐 **Etkileşimli Swagger UI Konsolu:** [http://127.0.0.1:8000/api/swagger/](http://127.0.0.1:8000/api/swagger/)
-- 📄 **Ham OpenAPI JSON Şeması:** [http://127.0.0.1:8000/api/swagger.json](http://127.0.0.1:8000/api/swagger.json) *(veya proje kökündeki [`swagger.json`](./swagger.json))*
+- 🌐 **Swagger UI Konsolu:** [http://127.0.0.1:8000/api/swagger/](http://127.0.0.1:8000/api/swagger/)
+- 📄 **OpenAPI JSON Şeması:** [http://127.0.0.1:8000/api/swagger.json](http://127.0.0.1:8000/api/swagger.json) *(veya kök dizindeki [`swagger.json`](./swagger.json))*
 
 > ### ⚠️ Mimari Kural: `swagger.json` Güncelleme Sözleşmesi
-> 1. Projeye yeni bir API uç noktası eklendiğinde,
-> 2. Mevcut rotaların parametreleri veya HTTP fiilleri değiştirildiğinde,
-> 3. İstek/Yanıt gövdelerinde ya da model alanlarında bir güncelleme yapıldığında,
-> 
-> **Kök dizindeki `swagger.json` dosyasının da eşzamanlı olarak güncellenmesi zorunludur.**  
-> Swagger UI arayüzü bu dosyayı dinamik servis ettiği için yapılan tüm değişiklikler dokümantasyon sayfasına anında yansır.
+> REST API rotalarında, parametrelerinde veya gövde şemalarında yapılan her değişiklikte [`swagger.json`](./swagger.json) dosyasının da güncellenmesi zorunludur.
 
 ---
 
@@ -276,40 +357,39 @@ Projedeki tüm REST API uç noktaları **OpenAPI 3.0** standardına uygun olarak
 
 ### 1. Önkoşullar
 - **Python 3.11 veya üzeri**
-- `pip` ve `venv` paket yöneticisi
-- Git
+- `pip` ve `venv`
 
 ### 2. Adım Adım Kurulum
 
 ```bash
-# 1. Depoyu klonlayın veya proje dizinine girin
+# 1. Proje dizinine girin
 cd /path/to/alumni
 
-# 2. Sanal ortamı (virtual environment) oluşturun
+# 2. Sanal ortamı oluşturun ve aktif edin
 python3 -m venv .venv
-
-# 3. Sanal ortamı aktif hale getirin
-# macOS / Linux:
 source .venv/bin/activate
-# Windows:
-# .venv\Scripts\activate
 
-# 4. Bağımlılıkları yükleyin
+# 3. Bağımlılıkları yükleyin
 pip install -r requirements.txt
+
+# 4. Ortam dosyasını hazırlayın
+cp env.example .env
+chmod 600 .env
 
 # 5. Veritabanı tablolarını uygulayın (SQLite)
 python manage.py migrate
 
-# 6. (İsteğe Bağlı) Yönetici hesabı oluşturun
-python manage.py createsuperuser
+# 6. Veritabanını demo/test verileriyle tohumlayın (Seeder)
+python manage.py seed --users 10 --announcements 5
 
 # 7. Geliştirme sunucusunu başlatın
 python manage.py runserver
 ```
 
-Sunucu ayağa kalktıktan sonra tarayıcınızdan erişebilirsiniz:
+Tarayıcıdan erişim adresleri:
 - **Ana Sayfa:** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - **Kullanıcı Yönetimi:** [http://127.0.0.1:8000/users/](http://127.0.0.1:8000/users/)
+- **Duyuru Yönetimi (DB):** [http://127.0.0.1:8000/announcements/](http://127.0.0.1:8000/announcements/)
 - **Swagger API Dokümantasyonu:** [http://127.0.0.1:8000/api/swagger/](http://127.0.0.1:8000/api/swagger/)
 - **Admin Paneli:** [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
 
@@ -317,58 +397,53 @@ Sunucu ayağa kalktıktan sonra tarayıcınızdan erişebilirsiniz:
 
 ## 🧪 Test ve Kalite Güvencesi
 
-Projede uçtan uca regresyon önleme ve mimari standartların korunması amacıyla tüm katmanlar birim ve entegrasyon testleri ile güvence altına alınmıştır.
+Projede uçtan uca regresyon önleme amacıyla tüm katmanlar birim ve entegrasyon testleri ile güvence altına alınmıştır.
 
 ```bash
-# 1. Django entegre testlerini çalıştırma (31 test)
+# 1. Tüm testleri tek seferde çalıştırma (71 Test)
+python manage.py test core && python -m unittest test_controllers.py test_announcements.py test_in_memory_user.py
+
+# 2. Django Entegre Testleri (43 Test - Model, View, Seeder, DB CRUD)
 python manage.py test core
 
-# 2. UserController ve ApiUserController testleri (7 test)
+# 3. User Controller Testleri (7 Test)
 python -m unittest test_controllers.py
 
-# 3. Announcement Model, CRUD ve Controller testleri (9 test)
+# 4. Announcement Controller Testleri (9 Test)
 python -m unittest test_announcements.py
 
-# 4. Veritabanı bağımsız In-Memory User CRUD testleri (12 test)
+# 5. In-Memory User Testleri (12 Test)
 python3 -m unittest test_in_memory_user.py
-
-# 5. In-Memory User CRUD CLI demosu
-python3 user.py
 ```
 
 ### Test Kapsamı
-- **Model Testleri:** Veri tipi doğrulamaları, `__str__` gösterimleri, meta sıralamaları ve `to_dict` dönüşümleri.
-- **Service & Business Logic Testleri:** Kullanıcı oluşturma, filtreleme, kısmi güncelleme ve silme iş mantığı kuralları.
-- **Serializer Testleri:** JSON serileştirme, eksik alan kontrolleri ve tarih biçimlendirme validasyonları.
-- **REST API Controller Testleri:** `GET`, `POST`, `PUT`, `PATCH`, `DELETE` HTTP durum kodları, hata fırlatma ve JSON gövde doğrulamaları.
-- **Web & Template Testleri:** Şablon render mekanizmaları, form post işlemleri ve HTTP durumları.
-- **Swagger & Route Testleri:** OpenAPI şema çıktısı, trailing-slash toleransları ve Swagger UI erişilebilirliği.
+- **Model Testleri:** `UserProfile` ve `Announcement` alan doğrulamaları, `to_dict` TR/EN dönüşümleri, varsayılan değerler.
+- **Factory & Seeder Testleri:** Nesne üretimi (`build`, `create`, `create_batch`), idempotent tekrar tohumlama, CLI `seed` komutu testi.
+- **Database CRUD Entegrasyon Testleri:** Web HTML ve REST API üzerinden veritabanına yazma, okuma, güncelleme ve silme doğrulaması.
+- **Swagger & Route Testleri:** OpenAPI şeması, trailing-slash toleransı ve UI erişilebilirliği.
 
 ---
 
 ## 🧭 Geliştirici Kılavuzu ve Kod Standartları
 
-1. **Katman Sınırlarına Uyun:**
-   - View (Controller) fonksiyonlarında doğrudan karmaşık SQL veya ORM zincirleri yazmayın; işlemleri `services/` katmanına taşıyın.
-   - Doğrudan View içinde request dictionary ayrıştırmak yerine `serializers/` üzerinden validasyon yapın.
-2. **PEP 8 ve Tip İpuçları:**
-   - Fonksiyon parametrelerinde ve dönüş tiplerinde tip ipuçları (type hints) kullanmaya özen gösterin.
-   - Tüm yeni servis ve fonksiyonlara açıklayıcı docstring ekleyin.
-3. **Trailing-Slash Desteği:**
-   - URL tanımlarında hem eğik çizgili (`/route/`) hem de çizgisiz (`/route`) erişimleri destekleyen rotaları koruyun.
-4. **Test Yazma Zorunluluğu:**
-   - Eklenen her yeni servis veya controller için `core/tests/` altına karşılık gelen test senaryolarını ekleyin.
+1. **Katman Sınırlarına Uyun:** View/Controller içinde doğrudan karmaşık SQL/iş mantığı yazmayın; `core/services/` katmanını kullanın.
+2. **`ddd.md` ve `swagger.json` Senkronizasyonu:** Model veya API değiştiğinde bu iki dokümanı eşzamanlı güncelleyin.
+3. **Idempotency Kuralı:** Yeni bir seeder yazdığınızda mükerrer kayıt üretmediğinden (`filter().first()` veya `get_or_create`) emin olun.
+4. **Test Yazma Zorunluluğu:** Eklenen her yeni servis, model veya endpoint için karşılık gelen test senaryolarını ekleyin.
 
 ---
 
 ## 🗺️ Yol Haritası (Roadmap)
 
 - [x] **Aşama 1: Temel Çekirdek ve Altyapı**
-  - [x] Django ve SQLite entegrasyonu
-  - [x] Temiz MVC mimari standardizasyonu ve dokümantasyonu
+  - [x] Django, SQLite ve PostgreSQL Docker entegrasyonu
+  - [x] Temiz MVC mimari standardizasyonu
   - [x] Kullanıcı CRUD sistemi (Web Arayüzü & REST API)
-  - [x] Swagger UI & OpenAPI 3.0 dokümantasyon entegrasyonu
-  - [x] Otomatize test suite'i (31 test senaryosu)
+  - [x] Duyuru (Announcement) CRUD sistemi ve veritabanı bağlantısı (DB Connection)
+  - [x] Domain-Driven Database Design reçetesi ([`ddd.md`](./ddd.md))
+  - [x] Database Factory ve Idempotent Seeder mimarisi (`python manage.py seed`)
+  - [x] Güvenlik sertleştirmesi (`.env`, `chmod 600`, `.gitignore`, `.dockerignore`)
+  - [x] Otomatize test suite'i (**71/71 test senaryosu yeşil**)
 - [ ] **Aşama 2: Kimlik Doğrulama ve Rol Yönetimi**
   - [ ] JWT / Session tabanlı kullanıcı kimlik doğrulaması
   - [ ] Öğrenci, Mezun ve Akademisyen rolleri için yetkilendirme (RBAC)

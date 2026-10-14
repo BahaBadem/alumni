@@ -1,0 +1,33 @@
+# Git & Version Control
+.git
+.gitignore
+
+# Environment & Secret Credentials (GÜVENLİK ÖNLEMİ)
+.env
+.env.*
+.env.local
+.env.production
+!.env.example
+!env.example
+!.example.env
+
+# Virtual Environment & Python cache
+.venv
+venv/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Operating System
+.DS_Store
+
+# Local Databases & Backups
+db.sqlite3
+db.sqlite3.backup
+*.sqlite3
+
+# Logs & Coverage
+*.log
+.coverage
+htmlcov/
