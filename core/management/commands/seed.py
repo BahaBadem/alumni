@@ -30,6 +30,17 @@ class Command(BaseCommand):
             help="Üretilecek dinamik duyuru adedi (Varsayılan: 5)",
         )
         parser.add_argument(
+            "--jobs",
+            type=int,
+            default=10,
+            help="Üretilecek dinamik iş & staj ilanı adedi (Varsayılan: 10)",
+        )
+        parser.add_argument(
+            "--jobs-only",
+            action="store_true",
+            help="Sadece iş & staj ilanları (JobPosting) tablosunu tohumlar.",
+        )
+        parser.add_argument(
             "--fresh",
             action="store_true",
             help="Tohumlamadan önce veritabanındaki mevcut kayıtları sıfırlar.",
@@ -54,6 +65,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         users_count = options["users"]
         announcements_count = options["announcements"]
+        jobs_count = options["jobs"]
+        jobs_only = options["jobs_only"]
         is_fresh = options["fresh"] or options["clear"]
         random_seed = options["seed"]
         no_input = options["no_input"]
@@ -63,6 +76,20 @@ class Command(BaseCommand):
             self.stdout.write(self.style.NOTICE(f"🎲 Rastgelelik tohumu ayarlandı: {random_seed}"))
 
         seeder = DatabaseSeeder()
+
+        if jobs_only:
+            self.stdout.write(self.style.HTTP_INFO("🌱 Yalnızca İş & Staj İlanları tohumlanıyor (İdempotent mod)..."))
+            report = seeder.seed_jobs_only(count=jobs_count)
+            job_info = report["jobs"]
+            self.stdout.write("\n" + "=" * 60)
+            self.stdout.write(self.style.SUCCESS("✨ İŞ İLANLARI TOHUMLAMA (SEED) BAŞARIYLA TAMAMLANDI!"))
+            self.stdout.write("=" * 60)
+            self.stdout.write(
+                f"💼 İş & Staj İlanları  : +{job_info['created']} yeni eklendi "
+                f"({job_info['existing']} zaten vardı) -> Toplam: {job_info['total']}"
+            )
+            self.stdout.write("=" * 60 + "\n")
+            return
 
         if is_fresh:
             if not no_input:
@@ -75,6 +102,7 @@ class Command(BaseCommand):
             report = seeder.seed_fresh(
                 users_count=users_count,
                 announcements_count=announcements_count,
+                jobs_count=jobs_count,
             )
             self.stdout.write(self.style.SUCCESS(f"  └─ {report.get('deleted_before_seed', 0)} kayıt silindi."))
         else:
@@ -82,10 +110,12 @@ class Command(BaseCommand):
             report = seeder.seed(
                 users_count=users_count,
                 announcements_count=announcements_count,
+                jobs_count=jobs_count,
             )
 
         users_info = report["users"]
         ann_info = report["announcements"]
+        job_info = report.get("jobs", {"created": 0, "existing": 0, "total": 0})
 
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write(self.style.SUCCESS("✨ VERİTABANI TOHUMLAMA (SEED) BAŞARIYLA TAMAMLANDI!"))
@@ -97,5 +127,9 @@ class Command(BaseCommand):
         self.stdout.write(
             f"📢 Duyurular           : +{ann_info['created']} yeni eklendi "
             f"({ann_info['existing']} zaten vardı) -> Toplam: {ann_info['total']}"
+        )
+        self.stdout.write(
+            f"💼 İş & Staj İlanları  : +{job_info['created']} yeni eklendi "
+            f"({job_info['existing']} zaten vardı) -> Toplam: {job_info['total']}"
         )
         self.stdout.write("=" * 60 + "\n")

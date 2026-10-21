@@ -2,10 +2,10 @@ import json
 from io import StringIO
 from django.test import TestCase, Client
 from django.core.management import call_command
-from core.models import UserProfile, Announcement
+from core.models import UserProfile, Announcement, JobPosting, Application
 from core.database.factories import UserProfileFactory, AnnouncementFactory
 from core.database.seeders import UserProfileSeeder, AnnouncementSeeder, DatabaseSeeder
-from core.services import announcement_service
+from core.services import announcement_service, application_service
 from announcement_model import AnnouncementValidationError, AnnouncementNotFoundError
 
 
@@ -681,5 +681,623 @@ class AnnouncementDatabaseCrudTestCase(TestCase):
         res_del = self.client.delete(f"/api/announcements/{ann_id}/")
         self.assertEqual(res_del.status_code, 200)
         self.assertFalse(Announcement.objects.filter(id=ann_id).exists())
+
+
+class JobPostingModelTestCase(TestCase):
+    def setUp(self):
+        import datetime
+        self.user = UserProfile.objects.create(
+            name="Ali Veli",
+            birth_date=datetime.date(1995, 6, 15),
+            city="İstanbul",
+            school="İTÜ"
+        )
+
+    def test_job_posting_creation_and_attributes(self):
+        import datetime
+        job = JobPosting.objects.create(
+            poster=self.user,
+            title="Kıdemli Python Geliştirici",
+            company_name="Teknoloji A.Ş.",
+            description="Django ve DDD mimarisi deneyimli mühendis aranıyor.",
+            employment_type="FULL_TIME",
+            location="İstanbul / Hibrit",
+            salary_range="100.000 - 150.000 TL",
+            contact_email="ik@teknoloji.com",
+            application_url="https://teknoloji.com/kariyer",
+            is_active=True,
+            deadline=datetime.date.today() + datetime.timedelta(days=30)
+        )
+        self.assertEqual(str(job), "Kıdemli Python Geliştirici @ Teknoloji A.Ş. (Tam Zamanlı)")
+        self.assertFalse(job.is_expired)
+        self.assertEqual(job.poster, self.user)
+
+    def test_job_posting_expired(self):
+        import datetime
+        job = JobPosting.objects.create(
+            title="Stajyer",
+            company_name="Test Co",
+            description="Staj ilanı detayı.",
+            employment_type="INTERNSHIP",
+            location="Ankara",
+            contact_email="test@test.com",
+            deadline=datetime.date.today() - datetime.timedelta(days=1)
+        )
+        self.assertTrue(job.is_expired)
+
+    def test_job_posting_to_dict(self):
+        job = JobPosting.objects.create(
+            poster=self.user,
+            title="Yazılım Mühendisi",
+            company_name="Acme",
+            description="İş açıklaması.",
+            employment_type="FULL_TIME",
+            location="Remote",
+            contact_email="acme@test.com"
+        )
+        data = job.to_dict()
+        self.assertEqual(data["title"], "Yazılım Mühendisi")
+        self.assertEqual(data["baslik"], "Yazılım Mühendisi")
+        self.assertEqual(data["company_name"], "Acme")
+        self.assertEqual(data["sirket"], "Acme")
+        self.assertEqual(data["poster_id"], self.user.id)
+        self.assertEqual(data["ilan_sahibi_id"], self.user.id)
+        self.assertTrue(data["is_active"])
+        self.assertFalse(data["is_expired"])
+
+
+class JobPostingRoutesTestCase(TestCase):
+    """
+    Doğrudan (Direct) ve İç İçe (Nested) rotaların Web ve REST API entegrasyon testleri.
+    """
+    def setUp(self):
+        import datetime
+        self.user = UserProfile.objects.create(
+            name="Zeynep Kaya",
+            birth_date=datetime.date(1998, 4, 20),
+            city="İzmir",
+            school="Ege Üniversitesi"
+        )
+        self.other_user = UserProfile.objects.create(
+            name="Mehmet Öz",
+            birth_date=datetime.date(1996, 8, 10),
+            city="Ankara",
+            school="ODTÜ"
+        )
+        self.job1 = JobPosting.objects.create(
+            poster=self.user,
+            title="Frontend Geliştirici",
+            company_name="WebCorp",
+            description="Vue/React bilen arayüz geliştirici aranıyor.",
+            employment_type="FULL_TIME",
+            location="İzmir",
+            contact_email="kariyer@webcorp.com"
+        )
+        self.job2 = JobPosting.objects.create(
+            poster=self.other_user,
+            title="Veri Bilimci",
+            company_name="DataLab",
+            description="Python ve makine öğrenimi uzmanı.",
+            employment_type="HYBRID",
+            location="Ankara",
+            contact_email="ik@datalab.com"
+        )
+
+    # --------------------------------------------------------------------------
+    # 1. DIRECT ROUTES TESTS (Web & API)
+    # --------------------------------------------------------------------------
+    def test_direct_web_list(self):
+        """Doğrudan Web rota: GET /jobs/"""
+        res = self.client.get('/jobs/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'job_postings.html')
+        self.assertContains(res, 'Frontend Geliştirici')
+        self.assertContains(res, 'Veri Bilimci')
+
+    def test_direct_web_create(self):
+        """Doğrudan Web rota: POST /jobs/create/"""
+        res = self.client.post('/jobs/create/', {
+            'title': 'DevOps Mühendisi',
+            'company_name': 'CloudNet',
+            'description': 'AWS ve Kubernetes konusunda deneyimli.',
+            'employment_type': 'REMOTE',
+            'location': 'Remote',
+            'contact_email': 'devops@cloudnet.com',
+            'is_active': 'on'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(JobPosting.objects.filter(title='DevOps Mühendisi').exists())
+
+    def test_direct_api_crud(self):
+        """Doğrudan REST API rotaları: /api/jobs/"""
+        # GET
+        res_get = self.client.get('/api/jobs/')
+        self.assertEqual(res_get.status_code, 200)
+        data = res_get.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["count"], 2)
+
+        # POST
+        payload = {
+            "title": "Mobil Geliştirici",
+            "company_name": "AppWorks",
+            "description": "Flutter ve iOS/Android bilgisi.",
+            "employment_type": "FULL_TIME",
+            "location": "İstanbul",
+            "contact_email": "hr@appworks.com"
+        }
+        res_post = self.client.post(
+            '/api/jobs/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res_post.status_code, 201)
+        created_id = res_post.json()["job_posting"]["id"]
+
+        # GET SINGLE
+        res_detail = self.client.get(f'/api/jobs/{created_id}/')
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertEqual(res_detail.json()["job_posting"]["title"], "Mobil Geliştirici")
+
+        # PATCH
+        res_patch = self.client.patch(
+            f'/api/jobs/{created_id}/',
+            data=json.dumps({"title": "Kıdemli Mobil Geliştirici"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_patch.status_code, 200)
+        self.assertEqual(res_patch.json()["job_posting"]["title"], "Kıdemli Mobil Geliştirici")
+
+        # DELETE
+        res_del = self.client.delete(f'/api/jobs/{created_id}/')
+        self.assertEqual(res_del.status_code, 200)
+        self.assertFalse(JobPosting.objects.filter(id=created_id).exists())
+
+    # --------------------------------------------------------------------------
+    # 2. NESTED ROUTES TESTS (Web & API)
+    # --------------------------------------------------------------------------
+    def test_nested_web_list(self):
+        """İç İçe Web rota: GET /users/<user_id>/jobs/"""
+        res = self.client.get(f'/users/{self.user.id}/jobs/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'job_postings.html')
+        self.assertContains(res, 'Frontend Geliştirici')
+        self.assertNotContains(res, 'Veri Bilimci')  # Mehmet Öz'ün ilanı görünmemeli
+
+    def test_nested_api_list(self):
+        """İç İçe REST API: GET /api/users/<user_id>/jobs/"""
+        res = self.client.get(f'/api/users/{self.user.id}/jobs/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertTrue(data.get("nested"))
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["job_postings"][0]["title"], "Frontend Geliştirici")
+
+    def test_nested_api_create(self):
+        """İç İçe REST API: POST /api/users/<user_id>/jobs/"""
+        payload = {
+            "title": "Backend Go Geliştirici",
+            "company_name": "GoLab",
+            "description": "Mikroservis mimarisinde deneyimli.",
+            "employment_type": "FULL_TIME",
+            "location": "İzmir",
+            "contact_email": "ik@golab.com"
+        }
+        res = self.client.post(
+            f'/api/users/{self.user.id}/jobs/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 201)
+        new_job_data = res.json()["job_posting"]
+        self.assertEqual(new_job_data["poster_id"], self.user.id)
+        self.assertEqual(new_job_data["ilan_sahibi_id"], self.user.id)
+
+    def test_nested_api_single_detail(self):
+        """İç İçe REST API: GET /api/users/<user_id>/jobs/<job_id>/"""
+        # Kullanıcının kendi ilanı -> 200 OK
+        res = self.client.get(f'/api/users/{self.user.id}/jobs/{self.job1.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["job_posting"]["id"], self.job1.id)
+
+        # Başka bir kullanıcının ilanı -> 404 (İlişki eşleşmiyor)
+        res_wrong = self.client.get(f'/api/users/{self.user.id}/jobs/{self.job2.id}/')
+        self.assertEqual(res_wrong.status_code, 404)
+
+        # Olmayan kullanıcı -> 404
+        res_no_user = self.client.get(f'/api/users/999999/jobs/{self.job1.id}/')
+        self.assertEqual(res_no_user.status_code, 404)
+
+    def test_nested_api_delete(self):
+        """İç İçe REST API: DELETE /api/users/<user_id>/jobs/<job_id>/"""
+        res = self.client.delete(f'/api/users/{self.user.id}/jobs/{self.job1.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(JobPosting.objects.filter(id=self.job1.id).exists())
+
+
+class ApplicationModelTestCase(TestCase):
+    """
+    Application Domain Modeli & Servis Katmanı Doğrulama Testleri.
+    """
+    def setUp(self):
+        import datetime
+        from django.db import IntegrityError
+        self.IntegrityError = IntegrityError
+        self.user = UserProfile.objects.create(
+            name="Ali Yılmaz",
+            birth_date=datetime.date(1995, 3, 15),
+            city="İstanbul",
+            school="Boğaziçi Üniversitesi"
+        )
+        self.applicant = UserProfile.objects.create(
+            name="Ayşe Demir",
+            birth_date=datetime.date(1999, 7, 22),
+            city="Ankara",
+            school="ODTÜ"
+        )
+        self.job = JobPosting.objects.create(
+            poster=self.user,
+            title="Full Stack Developer",
+            company_name="TeknoA.Ş.",
+            description="Django ve React bilen geliştirici.",
+            employment_type="FULL_TIME",
+            location="İstanbul",
+            contact_email="ik@tekno.com"
+        )
+
+    def test_create_application(self):
+        """Başvuru nesnesi başarıyla oluşturulabilmeli."""
+        app = Application.objects.create(
+            job=self.job,
+            applicant=self.applicant,
+            cover_letter="Merhaba, ilanınızla ilgileniyorum.",
+            resume_url="https://linkedin.com/in/aysedemir",
+            status="PENDING"
+        )
+        self.assertIsNotNone(app.id)
+        self.assertEqual(app.job, self.job)
+        self.assertEqual(app.applicant, self.applicant)
+        self.assertEqual(app.status, "PENDING")
+
+    def test_str_representation(self):
+        """__str__ metodunun çıktısı kontrol edilmeli."""
+        app = Application.objects.create(
+            job=self.job,
+            applicant=self.applicant,
+            cover_letter="Ön yazı metni.",
+            status="IN_REVIEW"
+        )
+        expected = f"{self.applicant.name} -> {self.job.title} (İncelemede)"
+        self.assertEqual(str(app), expected)
+
+    def test_to_dict_bilingual(self):
+        """to_dict() metodu hem Türkçe hem İngilizce alias anahtarları dönmeli."""
+        app = Application.objects.create(
+            job=self.job,
+            applicant=self.applicant,
+            cover_letter="Bilingual test",
+            resume_url="https://cv.link/123",
+            status="ACCEPTED"
+        )
+        d = app.to_dict()
+        # EN keys
+        self.assertEqual(d["job_id"], self.job.id)
+        self.assertEqual(d["applicant_id"], self.applicant.id)
+        self.assertEqual(d["applicant_name"], "Ayşe Demir")
+        self.assertEqual(d["job_title"], "Full Stack Developer")
+        self.assertEqual(d["cover_letter"], "Bilingual test")
+        self.assertEqual(d["resume_url"], "https://cv.link/123")
+        self.assertEqual(d["status"], "ACCEPTED")
+
+        # TR alias keys
+        self.assertEqual(d["ilan_id"], self.job.id)
+        self.assertEqual(d["basvuran_id"], self.applicant.id)
+        self.assertEqual(d["basvuran_adi"], "Ayşe Demir")
+        self.assertEqual(d["ilan_basligi"], "Full Stack Developer")
+        self.assertEqual(d["on_yazi"], "Bilingual test")
+        self.assertEqual(d["cv_linki"], "https://cv.link/123")
+        self.assertEqual(d["durum"], "ACCEPTED")
+
+    def test_unique_together_constraint(self):
+        """Aynı kullanıcı aynı ilana ikinci kez başvuramaz (unique_together)."""
+        Application.objects.create(
+            job=self.job,
+            applicant=self.applicant,
+            cover_letter="İlk başvuru"
+        )
+        with self.assertRaises(self.IntegrityError):
+            Application.objects.create(
+                job=self.job,
+                applicant=self.applicant,
+                cover_letter="İkinci başvuru (yinelenen)"
+            )
+
+    def test_cascade_delete_job(self):
+        """İlan silindiğinde başvuru da silinmeli (CASCADE)."""
+        app = Application.objects.create(
+            job=self.job,
+            applicant=self.applicant
+        )
+        app_id = app.id
+        self.job.delete()
+        self.assertFalse(Application.objects.filter(id=app_id).exists())
+
+    def test_cascade_delete_applicant(self):
+        """Başvuran silindiğinde başvuru da silinmeli (CASCADE)."""
+        app = Application.objects.create(
+            job=self.job,
+            applicant=self.applicant
+        )
+        app_id = app.id
+        self.applicant.delete()
+        self.assertFalse(Application.objects.filter(id=app_id).exists())
+
+
+class ApplicationRoutesTestCase(TestCase):
+    """
+    Application Doğrudan (Direct) ve İç İçe (Nested: Job & User) Rotalar Entegrasyon Testleri.
+    """
+    def setUp(self):
+        import datetime
+        self.employer = UserProfile.objects.create(
+            name="Ahmet Şirketçi",
+            birth_date=datetime.date(1990, 1, 1),
+            city="İstanbul",
+            school="İTÜ"
+        )
+        self.candidate1 = UserProfile.objects.create(
+            name="Zehra Başvuran",
+            birth_date=datetime.date(1997, 5, 10),
+            city="Ankara",
+            school="ODTÜ"
+        )
+        self.candidate2 = UserProfile.objects.create(
+            name="Can Başvuran",
+            birth_date=datetime.date(1998, 9, 15),
+            city="İzmir",
+            school="Ege Üniversitesi"
+        )
+        self.job1 = JobPosting.objects.create(
+            poster=self.employer,
+            title="Backend Mühendisi",
+            company_name="CloudNet",
+            description="Python & Django",
+            employment_type="FULL_TIME",
+            location="İstanbul",
+            contact_email="ik@cloudnet.com"
+        )
+        self.job2 = JobPosting.objects.create(
+            poster=self.employer,
+            title="Frontend Uzmanı",
+            company_name="CloudNet",
+            description="React & Next.js",
+            employment_type="REMOTE",
+            location="Remote",
+            contact_email="ik@cloudnet.com"
+        )
+        self.app1 = Application.objects.create(
+            job=self.job1,
+            applicant=self.candidate1,
+            cover_letter="Backend pozisyonuna başvuruyorum.",
+            resume_url="https://linkedin.com/in/zehra",
+            status="PENDING"
+        )
+
+    # --------------------------------------------------------------------------
+    # 1. DIRECT ROUTES (Web & REST API)
+    # --------------------------------------------------------------------------
+    def test_direct_web_list(self):
+        """GET /applications/ -> Web listesi render edilmeli."""
+        res = self.client.get('/applications/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'applications.html')
+        self.assertContains(res, 'Backend Mühendisi')
+        self.assertContains(res, 'Zehra Başvuran')
+
+    def test_direct_web_create(self):
+        """POST /applications/create/ -> Yeni başvuru eklenmeli."""
+        res = self.client.post('/applications/create/', {
+            'job_id': self.job2.id,
+            'applicant_id': self.candidate2.id,
+            'cover_letter': 'Frontend rolü için uygunum.',
+            'resume_url': 'https://portfolio.can.dev',
+            'status': 'PENDING'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(Application.objects.filter(job=self.job2, applicant=self.candidate2).exists())
+
+    def test_direct_web_detail(self):
+        """GET /applications/<id>/ -> Detay sayfası render edilmeli."""
+        res = self.client.get(f'/applications/{self.app1.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'applications.html')
+
+    def test_direct_web_status_update(self):
+        """POST /applications/<id>/ with action=STATUS -> Durum güncellenmeli."""
+        res = self.client.post(f'/applications/{self.app1.id}/', {
+            'action': 'STATUS',
+            'status': 'IN_REVIEW'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.app1.refresh_from_db()
+        self.assertEqual(self.app1.status, 'IN_REVIEW')
+
+    def test_direct_web_delete(self):
+        """POST /applications/<id>/ with action=DELETE -> Başvuru silinmeli."""
+        res = self.client.post(f'/applications/{self.app1.id}/', {
+            'action': 'DELETE'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(Application.objects.filter(id=self.app1.id).exists())
+
+    def test_direct_api_crud(self):
+        """Doğrudan REST API: /api/applications/ (GET, POST, GET single, PUT, PATCH, DELETE)"""
+        # GET ALL
+        res_get = self.client.get('/api/applications/')
+        self.assertEqual(res_get.status_code, 200)
+        data = res_get.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["count"], 1)
+
+        # POST
+        payload = {
+            "job_id": self.job1.id,
+            "applicant_id": self.candidate2.id,
+            "cover_letter": "REST API üzerinden başvuru yapıyorum.",
+            "resume_url": "https://linkedin.com/in/can",
+            "status": "PENDING"
+        }
+        res_post = self.client.post(
+            '/api/applications/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res_post.status_code, 201)
+        created_id = res_post.json()["application"]["id"]
+
+        # POST DUPLICATE -> 409 Conflict
+        res_dup = self.client.post(
+            '/api/applications/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res_dup.status_code, 409)
+
+        # GET SINGLE
+        res_single = self.client.get(f'/api/applications/{created_id}/')
+        self.assertEqual(res_single.status_code, 200)
+        self.assertEqual(res_single.json()["application"]["id"], created_id)
+
+        # PUT
+        res_put = self.client.put(
+            f'/api/applications/{created_id}/',
+            data=json.dumps({
+                "job_id": self.job1.id,
+                "applicant_id": self.candidate2.id,
+                "cover_letter": "Tamamen yenilenmiş ön yazı.",
+                "status": "IN_REVIEW"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(res_put.status_code, 200)
+        self.assertEqual(res_put.json()["application"]["status"], "IN_REVIEW")
+
+        # PATCH
+        res_patch = self.client.patch(
+            f'/api/applications/{created_id}/',
+            data=json.dumps({"status": "ACCEPTED"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_patch.status_code, 200)
+        self.assertEqual(res_patch.json()["application"]["status"], "ACCEPTED")
+
+        # DELETE
+        res_del = self.client.delete(f'/api/applications/{created_id}/')
+        self.assertEqual(res_del.status_code, 200)
+        self.assertFalse(Application.objects.filter(id=created_id).exists())
+
+    # --------------------------------------------------------------------------
+    # 2. JOB-NESTED ROUTES (Web & REST API)
+    # --------------------------------------------------------------------------
+    def test_job_nested_web_list(self):
+        """GET /jobs/<job_id>/applications/ -> İlan altındaki başvurular."""
+        res = self.client.get(f'/jobs/{self.job1.id}/applications/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'applications.html')
+        self.assertContains(res, 'Zehra Başvuran')
+
+    def test_job_nested_api_list(self):
+        """GET /api/jobs/<job_id>/applications/ -> İlan altındaki başvurular JSON."""
+        res = self.client.get(f'/api/jobs/{self.job1.id}/applications/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["nested"], "job")
+        self.assertEqual(data["count"], 1)
+
+    def test_job_nested_api_create(self):
+        """POST /api/jobs/<job_id>/applications/ -> İlan altına otomatik bağlı başvuru."""
+        payload = {
+            "applicant_id": self.candidate2.id,
+            "cover_letter": "Job-nested API başvurusu."
+        }
+        res = self.client.post(
+            f'/api/jobs/{self.job2.id}/applications/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 201)
+        app_data = res.json()["application"]
+        self.assertEqual(app_data["job_id"], self.job2.id)
+        self.assertEqual(app_data["applicant_id"], self.candidate2.id)
+
+    def test_job_nested_api_single_detail(self):
+        """GET /api/jobs/<job_id>/applications/<id>/ -> Doğru ilana bağlıysa 200, değilse 404."""
+        # Doğru ilan -> 200
+        res_ok = self.client.get(f'/api/jobs/{self.job1.id}/applications/{self.app1.id}/')
+        self.assertEqual(res_ok.status_code, 200)
+
+        # Farklı ilan -> 404 (İlişki eşleşmiyor)
+        res_mismatch = self.client.get(f'/api/jobs/{self.job2.id}/applications/{self.app1.id}/')
+        self.assertEqual(res_mismatch.status_code, 404)
+
+    def test_job_nested_api_delete(self):
+        """DELETE /api/jobs/<job_id>/applications/<id>/"""
+        res = self.client.delete(f'/api/jobs/{self.job1.id}/applications/{self.app1.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(Application.objects.filter(id=self.app1.id).exists())
+
+    # --------------------------------------------------------------------------
+    # 3. USER-NESTED ROUTES (Web & REST API)
+    # --------------------------------------------------------------------------
+    def test_user_nested_web_list(self):
+        """GET /users/<user_id>/applications/ -> Adayın kendi başvuruları."""
+        res = self.client.get(f'/users/{self.candidate1.id}/applications/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'applications.html')
+        self.assertContains(res, 'Backend Mühendisi')
+
+    def test_user_nested_api_list(self):
+        """GET /api/users/<user_id>/applications/ -> Adayın başvuruları JSON."""
+        res = self.client.get(f'/api/users/{self.candidate1.id}/applications/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["nested"], "user")
+        self.assertEqual(data["count"], 1)
+
+    def test_user_nested_api_create(self):
+        """POST /api/users/<user_id>/applications/ -> Aday altına otomatik bağlı başvuru."""
+        payload = {
+            "job_id": self.job2.id,
+            "cover_letter": "User-nested API başvurusu."
+        }
+        res = self.client.post(
+            f'/api/users/{self.candidate2.id}/applications/',
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 201)
+        app_data = res.json()["application"]
+        self.assertEqual(app_data["applicant_id"], self.candidate2.id)
+        self.assertEqual(app_data["job_id"], self.job2.id)
+
+    def test_user_nested_api_single_detail(self):
+        """GET /api/users/<user_id>/applications/<id>/ -> Doğru kullanıcıysa 200, değilse 404."""
+        # Doğru aday -> 200
+        res_ok = self.client.get(f'/api/users/{self.candidate1.id}/applications/{self.app1.id}/')
+        self.assertEqual(res_ok.status_code, 200)
+
+        # Farklı aday -> 404
+        res_mismatch = self.client.get(f'/api/users/{self.candidate2.id}/applications/{self.app1.id}/')
+        self.assertEqual(res_mismatch.status_code, 404)
+
+    def test_user_nested_api_delete(self):
+        """DELETE /api/users/<user_id>/applications/<id>/"""
+        res = self.client.delete(f'/api/users/{self.candidate1.id}/applications/{self.app1.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(Application.objects.filter(id=self.app1.id).exists())
+
 
 

@@ -11,6 +11,7 @@ from django.db import transaction
 from core.database.base import BaseSeeder
 from core.database.seeders.user_seeder import UserProfileSeeder
 from core.database.seeders.announcement_seeder import AnnouncementSeeder
+from core.database.seeders.job_posting_seeder import JobPostingSeeder
 
 
 class DatabaseSeeder(BaseSeeder):
@@ -19,20 +20,22 @@ class DatabaseSeeder(BaseSeeder):
 
     Kullanım:
         seeder = DatabaseSeeder()
-        report = seeder.seed(users_count=15, announcements_count=8)
+        report = seeder.seed(users_count=15, announcements_count=8, jobs_count=10)
         # veya temizleyip yeniden yüklemek için:
-        report = seeder.seed_fresh(users_count=10, announcements_count=5)
+        report = seeder.seed_fresh(users_count=10, announcements_count=5, jobs_count=10)
     """
     name = "DatabaseSeeder"
 
     def __init__(self):
         self.user_seeder = UserProfileSeeder()
         self.announcement_seeder = AnnouncementSeeder()
+        self.job_seeder = JobPostingSeeder()
 
     def seed(
         self,
         users_count: int = 10,
         announcements_count: int = 5,
+        jobs_count: int = 10,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -44,11 +47,23 @@ class DatabaseSeeder(BaseSeeder):
         with transaction.atomic():
             user_report = self.user_seeder.seed(count=users_count)
             announcement_report = self.announcement_seeder.seed(count=announcements_count)
+            job_report = self.job_seeder.seed(count=jobs_count)
 
         return {
             "status": "success",
             "users": user_report,
             "announcements": announcement_report,
+            "jobs": job_report,
+        }
+
+    def seed_jobs_only(self, count: int = 10) -> Dict[str, Any]:
+        """
+        Yalnızca iş & staj ilanları tablosunu tohumlar.
+        """
+        job_report = self.job_seeder.seed(count=count)
+        return {
+            "status": "success",
+            "jobs": job_report,
         }
 
     def clear(self) -> int:
@@ -57,6 +72,7 @@ class DatabaseSeeder(BaseSeeder):
         """
         deleted_count = 0
         with transaction.atomic():
+            deleted_count += self.job_seeder.clear()
             deleted_count += self.announcement_seeder.clear()
             deleted_count += self.user_seeder.clear()
         return deleted_count
@@ -64,12 +80,17 @@ class DatabaseSeeder(BaseSeeder):
     def seed_fresh(
         self,
         users_count: int = 10,
-        announcements_count: int = 5
+        announcements_count: int = 5,
+        jobs_count: int = 10
     ) -> Dict[str, Any]:
         """
         Önce mevcut verileri temizler, ardından baştan temiz tohumlama yapar.
         """
         deleted = self.clear()
-        report = self.seed(users_count=users_count, announcements_count=announcements_count)
+        report = self.seed(
+            users_count=users_count,
+            announcements_count=announcements_count,
+            jobs_count=jobs_count
+        )
         report["deleted_before_seed"] = deleted
         return report

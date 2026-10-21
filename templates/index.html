@@ -288,10 +288,11 @@
                 <li><a href="/about/">Hakkımızda</a></li>
                 <li><a href="/users/">Kullanıcılar (/users)</a></li>
                 <li><a href="/announcements/">Duyurular (/announcements)</a></li>
+                <li><a href="/jobs/">Kariyer & İlanlar (/jobs)</a></li>
+                <li><a href="/applications/">Başvurular (/applications)</a></li>
                 <li><a href="/api/swagger/" target="_blank">Swagger Docs ↗</a></li>
                 <li><a href="#routes">Aktif Rotalar</a></li>
-                <li><a href="#modules">Gelecek Modüller</a></li>
-                <li><span class="badge-status">Geliştirme Aşamasında</span></li>
+                <li><span class="badge-status">Canlı Sürüm v1.2</span></li>
             </ul>
         </div>
     </header>
@@ -394,10 +395,30 @@
                     </div>
                 </div>
 
+                <!-- Route 8: Job Postings (Kariyer & İş İlanları) -->
+                <div class="route-item" style="border-color: #bae6fd; background: #f0f9ff;">
+                    <span class="route-method" style="background: #0284c7; color: #ffffff;">WEB & REST API (Direct & Nested)</span>
+                    <div class="route-path">/jobs/ &bull; /api/jobs/ &bull; /users/&lt;id&gt;/jobs/</div>
+                    <div class="route-desc">Kariyer & İş İlanları Panosu: Kurumsal ve mezun ilanları, filtreleme, hızlı başvuru ve RESTful CRUD.</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="/jobs/" class="btn-test" style="background: #0284c7;">Kariyer Panosu (UI) ↗</a>
+                        <a href="/api/jobs/" target="_blank" class="btn-test" style="background: #475569;">JSON API (/api/jobs/) ↗</a>
+                    </div>
+                </div>
+
+                <!-- Route 9: Applications (İş & Staj Başvuruları) -->
+                <div class="route-item" style="border-color: #fed7aa; background: #fffaf5;">
+                    <span class="route-method" style="background: #ea580c; color: #ffffff;">WEB & REST API (Direct & Nested)</span>
+                    <div class="route-path">/applications/ &bull; /api/applications/ &bull; /jobs/&lt;id&gt;/applications/</div>
+                    <div class="route-desc">Başvuru Takip Panosu: Durum rozetleri (PENDING, IN_REVIEW, ACCEPTED, REJECTED), CV görüntüleme ve mükerrer başvuru koruması.</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="/applications/" class="btn-test" style="background: #ea580c;">Başvuru Paneli (UI) ↗</a>
+                        <a href="/api/applications/" target="_blank" class="btn-test" style="background: #475569;">JSON API ↗</a>
+                    </div>
+                </div>
+
             </div>
         </section>
-
-
 
         <!-- Project Roadmap / Planned Modules -->
         <section id="modules" class="card">
@@ -405,25 +426,29 @@
                 <h2 class="card-title">📌 Proje Modülleri (Alumni Portal Mimarisi)</h2>
             </div>
             <div class="modules-grid">
-                <div class="module-box">
+                <div class="module-box" style="border-color: #86efac; background: #f0fdf4;">
                     <div class="module-icon">👥</div>
-                    <h4>Mezun Dizini</h4>
+                    <h4>Mezun Dizini <span style="font-size: 0.7rem; background: #22c55e; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (86 Mezun)</span></h4>
                     <p>Mezunları mezuniyet yılı, bölüm, sektör ve konuma göre listeleme ve arama.</p>
+                    <a href="/users/" style="font-size: 0.85rem; color: #15803d; font-weight: 600; text-decoration: none;">Mezunları Gör &rarr;</a>
                 </div>
-                <div class="module-box">
+                <div class="module-box" style="border-color: #7dd3fc; background: #f0f9ff;">
                     <div class="module-icon">💼</div>
-                    <h4>Kariyer & İş İlanları</h4>
-                    <p>Mezunların şirketlerindeki staj ve iş fırsatlarını öğrencilerle paylaşması.</p>
+                    <h4>Kariyer & İş İlanları <span style="font-size: 0.7rem; background: #0284c7; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (24 İlan)</span></h4>
+                    <p>Mezunların şirketlerindeki staj ve iş fırsatlarını öğrencilerle paylaşması ve tek tıkla başvuru.</p>
+                    <a href="/jobs/" style="font-size: 0.85rem; color: #0369a1; font-weight: 600; text-decoration: none;">Kariyer Panosuna Git &rarr;</a>
                 </div>
-                <div class="module-box">
-                    <div class="module-icon">🤝</div>
-                    <h4>Mentörlük Programı</h4>
-                    <p>Kariyer basamaklarındaki mezunlar ile üniversite öğrencilerini buluşturma.</p>
+                <div class="module-box" style="border-color: #fed7aa; background: #fffaf5;">
+                    <div class="module-icon">📋</div>
+                    <h4>Başvuru Yönetimi <span style="font-size: 0.7rem; background: #ea580c; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif</span></h4>
+                    <p>İlanlara gelen başvuruları inceleme, aday CV'lerini değerlendirme ve kabul/ret durum takibi.</p>
+                    <a href="/applications/" style="font-size: 0.85rem; color: #c2410c; font-weight: 600; text-decoration: none;">Başvuruları Yönet &rarr;</a>
                 </div>
                 <div class="module-box">
                     <div class="module-icon">📅</div>
-                    <h4>Etkinlikler & Duyurular</h4>
+                    <h4>Etkinlikler & Duyurular <span style="font-size: 0.7rem; background: #64748b; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (24 Duyuru)</span></h4>
                     <p>Yıllık buluşmalar, teknik webinarlar ve kampüs etkinlikleri.</p>
+                    <a href="/announcements/" style="font-size: 0.85rem; color: #475569; font-weight: 600; text-decoration: none;">Duyuruları Oku &rarr;</a>
                 </div>
             </div>
         </section>
