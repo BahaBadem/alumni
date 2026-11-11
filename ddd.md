@@ -1,8 +1,9 @@
 # 📐 Domain-Driven Database Design (DDD) & Veritabanı Yol Haritası Reçetesi
-**Proje:** Alumni Portal (Alumni Management System)  
-**Tarih:** 21 Ekim 2026  
-**Doküman Sürümü:** v1.2.0 (Job Posting & Applications Tablo ve Rota Mimarisi Entegrasyonu)  
-**Durum:** Kabul Edildi / İnşa Aşamasında  
+
+- **Proje** Alumni Portal (Alumni Management System)
+- **Son güncelleme** 11 Kasım 2026
+- **Doküman sürümü** v1.3.0 (İş ilanı alan kuralları ve HTTP hata yönetimi)
+- **Durum** Kabul edildi / inşa aşamasında
 
 ---
 
@@ -21,7 +22,7 @@
    - [4.1. Varlık İlişki Diyagramı (ERD)](#41-varlık-ilişki-diyagramı-erd)
    - [4.2. Tablo Detayları ve Veri Sözlüğü](#42-tablo-detayları-ve-veri-sözlüğü)
      - [A. `core_userprofile` (Mevcut - Genişletilebilir)](#a-core_userprofile-mevcut---genişletilebilir)
-     - [B. `core_announcement` (Yeni Eklenecek ORM Tablosu)](#b-core_announcement-yeni-eklenecek-orm-tablosu)
+     - [B. `core_announcement` (Duyuru Tablosu)](#b-core_announcement-duyuru-tablosu)
      - [C. `core_alumnidetail` (Mezuniyet & Kariyer Uzantısı - Faz 2)](#c-core_alumnidetail-mezuniyet--kariyer-uzantısı---faz-2)
      - [D. `core_jobposting` (İş & Staj İlanları Tablosu - Faz 3 / Kariyer Portalı)](#d-core_jobposting-iş--staj-i̇lanları-tablosu---faz-3--kariyer-portalı)
      - [E. `core_application` (İş & Staj Başvuruları Tablosu - Faz 3 / Kariyer Portalı)](#e-core_application-iş--staj-başvuruları-tablosu---faz-3--kariyer-portalı)
@@ -36,11 +37,12 @@
    - [Adım 4: Servis Katmanının Hibrit / Veritabanı Uyumlu Hale Getirilmesi](#adım-4-servis-katmanının-hibrit--veritabanı-uyumlu-hale-getirilmesi)
    - [Adım 5: Controller, Web View ve REST API Köprülenmesi](#adım-5-controller-web-view-ve-rest-api-köprülenmesi)
    - [Adım 6: Swagger / OpenAPI 3.0 Dokümantasyon Güncellemesi](#adım-6-swagger--openapi-30-dokümantasyon-güncellemesi)
-   - [Adım 7: Kapsamlı Test Doğrulaması (71+ Test)](#adım-7-kapsamlı-test-doğrulaması-71-test)
+   - [Adım 7: Kapsamlı Test Doğrulaması](#adım-7-kapsamlı-test-doğrulaması)
    - [Adım 8: Kariyer & İş İlanları Tablosunun İnşası (JobPosting)](#adım-8-kariyer--i̇ş-i̇lanları-tablosunun-i̇nşası-jobposting)
    - [Adım 9: Başvuru Yönetimi Tablosu & Doğrudan/İç İçe Rotaların İnşası (Application)](#adım-9-başvuru-yönetimi-tablosu--doğrudaniç-i̇çe-rotaların-i̇nşası-application)
 8. [Database Factory & Seeder Mimarisi](#8-database-factory--seeder-mimarisi)
 9. [Doğrulama ve Kalite Kriterleri (Acceptance Checklist)](#9-doğrulama-ve-kalite-kriterleri-acceptance-checklist)
+10. [HTTP Hata Yanıtları ve İstek Kayıtları](#10-http-hata-yanıtları-ve-istek-kayıtları)
 
 ---
 
@@ -63,7 +65,7 @@ Proje kaynak kodları, testleri ve SQLite veritabanı incelenerek mevcut durum �
 
 ### 2.1. SQLite Veritabanı ve `core_userprofile` Verileri
 
-Veritabanında (`db.sqlite3`) halihazırda uygulanmış olan tek iş tablosu `core_userprofile` tablosudur:
+Yerel veritabanı (`db.sqlite3`) `core_userprofile`, `core_announcement`, `core_jobposting` ve `core_application` tablolarını içerir. Kullanıcı profili tablosunun şeması aşağıdaki gibidir.
 
 ```sql
 CREATE TABLE "core_userprofile" (
@@ -76,8 +78,8 @@ CREATE TABLE "core_userprofile" (
 );
 ```
 
-#### Mevcut Canlı Kayıtlar:
-Veritabanında test ve kullanıcı işlemleriyle girilmiş `20 adet aktif kayıt` yer almaktadır:
+#### İlk SQLite incelemesinden kayıt örnekleri
+
 - `id=4`: "Baha Badem", `1901-04-12` / `2001-04-12`, Ankara, Hacettepe
 - `id=5`: "Ahmet Yılmaz", `1998-05-15`, İstanbul, Yıldız Teknik Üniversitesi
 - `id=6`: "Baha Badem", `2005-05-28`, Konya, İstanbul Üniversitesi
@@ -100,8 +102,7 @@ Projede veritabanından bağımsız çalışan iki saf Python (dataclass) modeli
    - Bellekte `_ANNOUNCEMENTS_DB: Dict[int, Announcement]` ve `_STORAGE_LOCK` ile tutulur.
    - Alanlar: `id`, `title`, `content`, `author`, `category`, `is_active`, `created_at`.
    - Validasyon: `title` >= 3 karakter, `content` >= 5 karakter, `author` zorunlu.
-   - Web Controller (`AnnouncementController`) ve API Controller (`ApiAnnouncementController`) şu an doğrudan bu bellek modülünü çağırır.
-   - **Eksik:** Henüz bir veritabanı karşılığı (Django ORM Modeli ve tablosu) yoktur. Sunucu yeniden başladığında duyurular sıfırlanmaktadır.
+   - Web ve API controller’ları varsayılan olarak `core/services/announcement_service.py` üzerinden ORM tablosunu kullanır. Bellek içi mod `use_in_memory=True` ile kullanılabilir.
 
 ### 2.3. Çift Dilli (TR / EN) Parametre Eşleme Mimarisi
 
@@ -118,11 +119,11 @@ Sistemde hem Türkçe hem İngilizce JSON alanları ve form parametreleri destek
 | `author` | `yazar` | `author` | String (100) | `core_announcement` |
 | `category` | `kategori` | `category` | String (50) | `core_announcement` |
 | `is_active` | `aktif_mi`, `yayinda_mi` | `is_active` | Boolean | `core_announcement`, `core_jobposting` |
-| `job_title` / `title` | `is_basligi`, `baslik` | `title` | String (200) | `core_jobposting` |
-| `company_name` | `sirket`, `sirket_adi`, `kurum` | `company_name` | String (150) | `core_jobposting` |
+| `title` | `is_basligi`, `baslik` | `title` | String (120) | `core_jobposting` |
+| `company_name` / `company` | `sirket`, `sirket_adi` | `company_name` | String (150) | `core_jobposting` |
 | `description` | `aciklama`, `is_tanimi`, `icerik` | `description` | Text | `core_jobposting` |
 | `employment_type` | `is_tipi`, `calisma_sekli`, `istihdam_turu` | `employment_type` | String (50) | `core_jobposting` |
-| `location` | `konum`, `lokasyon`, `sehir` | `location` | String (100) | `core_jobposting` |
+| `location` / `city` | `konum`, `sehir` | `location` | String (100) | `core_jobposting` |
 | `salary_range` | `maas_araligi`, `maas` | `salary_range` | String (100) | `core_jobposting` |
 | `contact_email` | `iletisim_eposta`, `email`, `eposta` | `contact_email` | Email / String (100) | `core_jobposting` |
 | `application_url` | `basvuru_linki`, `basvuru_adresi`, `url` | `application_url` | URL / String (255) | `core_jobposting` |
@@ -149,7 +150,7 @@ flowchart TB
     end
 
     subgraph Context2 ["2. Duyuru & İletişim Context'i (Announcement Context)"]
-        Announcement["Announcement (Entity - Taşınacak)"]
+        Announcement["Announcement (Entity - ORM)"]
         Category["AnnouncementCategory (Value Object: Genel, Kariyer, Etkinlik)"]
     end
 
@@ -244,11 +245,11 @@ erDiagram
     CORE_JOBPOSTING {
         int id PK "Auto Increment"
         int poster_id FK "Nullable, UserProfile ilişkisi (İlan Sahibi Mezun)"
-        string title "NOT NULL, max 200 (Pozisyon Adı)"
+        string title "NOT NULL, max 120 (Pozisyon Adı)"
         string company_name "NOT NULL, max 150 (Şirket/Kurum)"
-        text description "NOT NULL (İş ve Yetkinlik Tanımı)"
+        text description "NOT NULL, boş olabilir (İş Tanımı)"
         string employment_type "NOT NULL, default FULL_TIME, max 50"
-        string location "NOT NULL, max 100 (Şehir veya Remote)"
+        string location "NOT NULL, max 100, boş olabilir (Şehir veya Remote)"
         string salary_range "Nullable, max 100 (Opsiyonel Maaş)"
         string contact_email "NOT NULL, max 100 (Başvuru E-posta)"
         string application_url "Nullable, max 255 (Web Başvuru Linki)"
@@ -290,8 +291,9 @@ Bu tablo mevcut SQLite veritabanında çalışmaktadır.
 | `school` | `CharField(max_length=200)` | `VARCHAR(200)` | `NOT NULL` | Okulu / Üniversitesi |
 | `created_at` | `DateTimeField(auto_now_add=True)`| `DATETIME` | `NOT NULL` | Oluşturulma Zamanı |
 
-#### B. `core_announcement` (Yeni Eklenecek ORM Tablosu)
-`announcement_model.py` saf modelinden türetilecek olan Django ORM tablosu.
+#### B. `core_announcement` (Duyuru Tablosu)
+
+`announcement_model.py` saf modelinden türetilen Django ORM tablosu.
 
 | Alan Adı (DB) | Python ORM Tipi | SQL Tipi | Kısıtlar (Constraints) | Varsayılan Değer | Açıklama |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -325,13 +327,13 @@ Mezunların, partner kurumların veya kariyer ofisinin açtığı iş, staj ve p
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `id` | `BigAutoField` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` | - | Tekil ilan ID'si |
 | `poster_id` | `ForeignKey(UserProfile)` | `INTEGER` | `NULL, BLANK, ON DELETE SET_NULL, db_index=True` | `NULL` | İlanı açan mezun/kullanıcı (Opsiyonel FK) |
-| `title` | `CharField(max_length=200)` | `VARCHAR(200)` | `NOT NULL, db_index=True` | - | Pozisyon / Rol başlığı (min 3 kar.) |
-| `company_name` | `CharField(max_length=150)` | `VARCHAR(150)` | `NOT NULL, db_index=True` | - | Şirket / Kurum Adı (min 2 kar.) |
-| `description` | `TextField` | `TEXT` | `NOT NULL` | - | İlan detayları ve gereksinimler (min 10 kar.) |
+| `title` | `CharField(max_length=120)` | `VARCHAR(120)` | `NOT NULL, db_index=True, CHECK (LENGTH(title) <= 120)` | - | Zorunlu pozisyon başlığı (3–120 karakter) |
+| `company_name` | `CharField(max_length=150)` | `VARCHAR(150)` | `NOT NULL, db_index=True` | - | Zorunlu şirket / kurum adı (min 2 karakter) |
+| `description` | `TextField(blank=True)` | `TEXT` | `NOT NULL, BLANK` | `""` | İsteğe bağlı iş tanımı |
 | `employment_type` | `CharField(max_length=50)` | `VARCHAR(50)` | `NOT NULL, db_index=True` | `'FULL_TIME'` | Çalışma şekli (Full-Time, Staj, Remote vs.) |
-| `location` | `CharField(max_length=100)` | `VARCHAR(100)` | `NOT NULL, db_index=True` | `'İstanbul / Hibrit'` | Lokasyon (Şehir veya Remote/Hibrit) |
+| `location` | `CharField(max_length=100, blank=True)` | `VARCHAR(100)` | `NOT NULL, BLANK, db_index=True` | `""` | İsteğe bağlı şehir veya çalışma konumu |
 | `salary_range` | `CharField(max_length=100)` | `VARCHAR(100)` | `NULL, BLANK` | `NULL` | Ücret skalası (Opsiyonel) |
-| `contact_email` | `EmailField(max_length=100)` | `VARCHAR(100)` | `NOT NULL` | - | Başvuru e-posta adresi |
+| `contact_email` | `EmailField(max_length=100)` | `VARCHAR(100)` | `NOT NULL` | - | Oluşturma ve tam güncellemede zorunlu başvuru e-postası |
 | `application_url` | `URLField(max_length=255)` | `VARCHAR(255)` | `NULL, BLANK` | `NULL` | Harici başvuru formu bağlantısı |
 | `is_active` | `BooleanField` | `BOOLEAN` | `NOT NULL, db_index=True` | `True` | Yayında olma durumu |
 | `deadline` | `DateField` | `DATE` | `NULL, BLANK, db_index=True` | `NULL` | Son başvuru tarihi |
@@ -344,7 +346,7 @@ Mezunların, partner kurumların veya kariyer ofisinin açtığı iş, staj ve p
 CREATE TABLE "core_jobposting" (
     "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
     "poster_id" integer NULL REFERENCES "core_userprofile" ("id") DEFERRABLE INITIALLY DEFERRED,
-    "title" varchar(200) NOT NULL,
+    "title" varchar(120) NOT NULL,
     "company_name" varchar(150) NOT NULL,
     "description" text NOT NULL,
     "employment_type" varchar(50) NOT NULL,
@@ -355,7 +357,8 @@ CREATE TABLE "core_jobposting" (
     "is_active" bool NOT NULL,
     "deadline" date NULL,
     "created_at" datetime NOT NULL,
-    "updated_at" datetime NOT NULL
+    "updated_at" datetime NOT NULL,
+    CONSTRAINT "core_job_title_max_120" CHECK (LENGTH("title") <= 120)
 );
 
 -- Performans ve Filtreleme İndeksleri
@@ -370,6 +373,8 @@ CREATE INDEX "core_jobposting_deadline_idx" ON "core_jobposting" ("deadline");
 
 ```python
 from django.db import models
+from django.db.models.functions import Length
+from django.db.models.lookups import LessThanOrEqual
 from django.utils import timezone
 
 
@@ -396,9 +401,9 @@ class JobPosting(models.Model):
         related_name='job_postings',
         verbose_name="İlanı Veren Mezun/Yetkili"
     )
-    title = models.CharField(max_length=200, db_index=True, verbose_name="Pozisyon Başlığı")
+    title = models.CharField(max_length=120, db_index=True, verbose_name="Pozisyon Başlığı")
     company_name = models.CharField(max_length=150, db_index=True, verbose_name="Şirket / Kurum Adı")
-    description = models.TextField(verbose_name="İş Tanımı ve Aranan Nitelikler")
+    description = models.TextField(blank=True, verbose_name="İş Tanımı ve Aranan Nitelikler")
     employment_type = models.CharField(
         max_length=50,
         choices=EMPLOYMENT_TYPES,
@@ -406,7 +411,7 @@ class JobPosting(models.Model):
         db_index=True,
         verbose_name="Çalışma Şekli"
     )
-    location = models.CharField(max_length=100, db_index=True, verbose_name="Lokasyon / Şehir")
+    location = models.CharField(max_length=100, db_index=True, blank=True, verbose_name="Lokasyon / Şehir")
     salary_range = models.CharField(max_length=100, blank=True, null=True, verbose_name="Maaş Skalası")
     contact_email = models.EmailField(max_length=100, verbose_name="İletişim / Başvuru E-postası")
     application_url = models.URLField(max_length=255, blank=True, null=True, verbose_name="Harici Başvuru URL")
@@ -423,6 +428,12 @@ class JobPosting(models.Model):
             models.Index(fields=['is_active', '-created_at'], name='core_job_active_created_idx'),
             models.Index(fields=['employment_type', 'is_active'], name='core_job_type_active_idx'),
             models.Index(fields=['location', 'is_active'], name='core_job_loc_active_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=LessThanOrEqual(Length("title"), 120),
+                name="core_job_title_max_120",
+            ),
         ]
 
     def __str__(self):
@@ -637,14 +648,15 @@ class Application(models.Model):
    - Başlık boş olamaz ve en az 3 karakter olmalıdır.
    - İçerik boş olamaz ve en az 5 karakter olmalıdır.
 3. **İş & Staj İlanı Modeli (`core_jobposting`):**
-   - Pozisyon başlığı (`title`) boş olamaz ve en az 3 karakter olmalıdır.
-   - Şirket / Kurum adı (`company_name`) en az 2 karakter olmalıdır.
-   - İş tanımı (`description`) pozisyon niteliklerini açıklamak için en az 10 karakter olmalıdır.
+   - Pozisyon başlığı (`title`) zorunludur ve 3–120 karakter olmalıdır. SQLite ve PostgreSQL üst sınırı veritabanında da uygular.
+   - Şirket / kurum adı (`company_name`) zorunludur ve en az 2 karakter olmalıdır.
+   - Şehir (`location` veya isteklerde `city`) ve iş tanımı (`description`) isteğe bağlıdır. İş tanımı girilirse en az 10 karakter olmalıdır. Boş alanlar boş metin olarak saklanır.
+   - Tam güncellemede (`PUT`) gönderilmeyen şehir ve iş tanımı boşaltılır. Kısmi güncellemede (`PATCH`) gönderilmeyen alanlar mevcut değerlerini korur.
+   - Web formundan oluşturulan ilanlarda `is_active` varsayılan olarak `True` olur. Başvuru alabilmesi için ilanın ayrıca son başvuru tarihi geçmemiş olmalıdır.
    - Çalışma şekli (`employment_type`) tanımlı enum değerlerinden (`FULL_TIME`, `PART_TIME`, `INTERNSHIP`, `REMOTE`, `HYBRID`, `CONTRACT`) biri olmalıdır.
-   - İletişim e-postası (`contact_email`) RFC 5322 uyumlu geçerli e-posta adres formatında olmalıdır.
+   - İletişim e-postası (`contact_email`) yeni ilan ve tam güncelleme için zorunludur. Servis e-posta adresi biçimini doğrular.
    - Başvuru adresi (`application_url`) eğer girilmişse geçerli `http://` veya `https://` protokolü içeren bir URL formatında olmalıdır.
    - Son başvuru tarihi (`deadline`) eğer girilmişse geçerli bir tarih olmalı; yeni ilan oluşturulurken geçmiş bir tarih girilemez (`deadline >= today`).
-   - Çift Başvuru Güvencesi: Her ilanda başvurunun ulaştırılabilmesi için en az `contact_email` veya `application_url` alanlarından biri erişilebilir olmalıdır.
 4. **Başvuru Modeli (`core_application`):**
    - Mükerrer Başvuru Yasağı: Bir mezun aynı ilana birden fazla aktif başvuru yapamaz (`job_id` + `applicant_id` tekildir).
    - İlan Durumu: Yalnızca aktif (`is_active=True`) ve süresi geçmemiş ilanlara yeni başvuru kabul edilir.
@@ -655,6 +667,8 @@ class Application(models.Model):
 ---
 
 ## 6. Veri Göçü (Data Migration) ve Veri Koruma Stratejisi
+
+Yerel geliştirmede `env.example` şablonu SQLite’ı seçer ve uygulama `db.sqlite3` dosyasını kullanır. Docker Compose, Python 3.13 tabanlı web imajına PostgreSQL 16 ayarlarını ve `db` servis adresini verir. Web servisi başlarken migration’ları uygular.
 
 > [!CAUTION]
 > `db.sqlite3` dosyasındaki mevcut `core_userprofile` verileri kesinlikle silinmemeli veya üzerine yazılmamalıdır!
@@ -668,6 +682,12 @@ class Application(models.Model):
 3. **In-Memory & ORM Birlikteliği (Dual-Engine / Backward Compatibility):**
    - Var olan testlerin (`test_announcements.py`, `test_in_memory_user.py`) çalışabilmesi için `announcement.py` ve `user.py` in-memory fonksiyonları korunacaktır.
    - Controller'lar veya Servisler bir anahtar parametre (`use_db=True` veya varsayılan ORM servisi) ile yönlendirilecek, böylece testler kırılmayacaktır.
+
+### İş ilanı alanları migration’ı
+
+[`0005_job_posting_field_rules.py`](./core/migrations/0005_job_posting_field_rules.py), `0004_application` üzerine uygulanır. `description` ve `location` boş bırakılabilir. `core_job_title_max_120` kısıtı, başlık sütunu `VARCHAR(120)` olarak daraltılmadan önce eklenir. 120 karakteri aşan bir eski başlık varsa migration durur ve kayıt metni korunur.
+
+Yerel SQLite üzerinde uygulamadan önce ayrı bir yedek alındı. Migration sonrasında dört domain tablosundaki kayıtların ve yabancı anahtarların korunduğu doğrulandı. Yeni kurulumlarda ve mevcut şema yükseltmelerinde `python manage.py migrate` bu adımı da uygular.
 
 ---
 
@@ -714,15 +734,16 @@ flowchart LR
 - [x] `templates/announcements.html` arayüzünün Veritabanı (DB Connection) göstergeleriyle yenilenmesi.
 
 ### Adım 6: Swagger / OpenAPI 3.0 Dokümantasyon Güncellemesi
-- `swagger.json` dosyasına Announcement REST API rotalarının (`/api/announcements/`, `/api/announcements/{id}/` vb.) eklenmesi veya mevcut tanımların kontrol edilmesi.
-- Swagger UI (`/api/swagger/`) üzerinden canlı doğrulanması.
+- [x] `swagger.json` içinde doğrudan ve kullanıcıya bağlı ilan rotalarının `POST`, `PUT` ve `PATCH` gövdeleri tanımlandı.
+- [x] Başlık sınırı, zorunlu şirket ve e-posta alanları ile isteğe bağlı şehir ve açıklama belgelendi.
+- [ ] Duyuru ve başvuru rotaları ile ilanların okuma ve silme işlemlerini Swagger kapsamına ekleme.
 
-### Adım 7: Kapsamlı Test Doğrulaması (71+ Test)
+### Adım 7: Kapsamlı Test Doğrulaması
 - [x] Announcement ORM modeli birim testlerinin eklenmesi (`core/tests.py`).
 - [x] Database Factory ve Seeder mimarisinin kurulması (`core/database/`).
 - [x] Idempotent Seeder ve `python manage.py seed` yönetim komutunun test edilmesi.
 - [x] Announcement Web & REST API veritabanı entegrasyon testleri (`AnnouncementDatabaseCrudTestCase`).
-- [x] 71/71 testin başarıyla geçmesi.
+- [x] İlan alan kuralları, genel 404 sayfası, 5xx guardian ve istek logger’ı dahil 116 testin başarıyla geçmesi.
 
 ### Adım 8: Kariyer & İş İlanları Tablosunun İnşası (`JobPosting`)
 - [x] `JobPosting` ORM modelinin `core/models.py` içerisine eklenmesi (`title`, `company_name`, `description`, `employment_type`, `location`, `salary_range`, `contact_email`, `application_url`, `is_active`, `deadline`, `poster_id`).
@@ -733,6 +754,7 @@ flowchart LR
 - [x] `JobPostingController` (Web HTML) ve `ApiJobPostingController` (REST API) Doğrudan (Direct) ve İç İçe (Nested: `/users/<id>/jobs/`) denetleyicilerinin yazılması.
 - [x] `JobPostingFactory` ve `JobPostingSeeder` sınıflarının geliştirilmesi (`python manage.py seed --jobs 15`).
 - [x] Kariyer ve iş ilanı birim ve doğrudan/iç içe rota entegrasyon testlerinin yazılması (`JobPostingModelTestCase`, `JobPostingRoutesTestCase`).
+- [x] `0005_job_posting_field_rules.py` ile başlık üst sınırının 120 karaktere indirilmesi ve şehir ile iş tanımının isteğe bağlı yapılması. Migration, sütunu daraltmadan önce başlık uzunluğunu kontrol eder ve sınırı aşan kayıt varsa işlemi durdurur.
 
 ### Adım 9: Başvuru Yönetimi Tablosu & Doğrudan/İç İçe Rotaların İnşası (`Application`)
 - [x] `Application` ORM modelinin `core/models.py` içerisine eklenmesi (`job`, `applicant`, `cover_letter`, `resume_url`, `status`, `unique_together`).
@@ -787,9 +809,9 @@ python manage.py seed --seed 42
 
 | Kriter | Açıklama | Durum |
 | :--- | :--- | :--- |
-| **Veri Korunumu** | `core_userprofile` içindeki eski kayıtlar korundu mu? | ✅ **Korundu (86 kayıt aktif)** |
-| **Duyuru Tablosu** | `core_announcement` tablosu SQLite'da başarıyla oluştu mu? | ✅ **Oluşturuldu (24 kayıt aktif)** |
-| **İş İlanı Tablosu** | `core_jobposting` tablosu SQLite'da başarıyla oluştu mu? | ✅ **Oluşturuldu (`0003_jobposting.py` uygulandı)** |
+| **Veri Korunumu** | `0005` sonrasında kayıtlar ve yabancı anahtarlar korundu mu? | ✅ **Dört domain tablosu SQLite üzerinde doğrulandı** |
+| **Duyuru Tablosu** | `core_announcement` tablosu SQLite'da başarıyla oluştu mu? | ✅ **Oluşturuldu** |
+| **İş İlanı Tablosu** | 120 karakterlik başlık sınırı ve isteğe bağlı alanlar uygulandı mı? | ✅ **`0005_job_posting_field_rules.py` yerel SQLite’a uygulandı** |
 | **Başvuru Tablosu** | `core_application` tablosu SQLite'da başarıyla oluştu mu? | ✅ **Oluşturuldu (`0004_application.py` uygulandı)** |
 | **Doğrudan & İç İçe Rotalar** | Direct (`/applications/`) ve Nested (`/jobs/<id>/applications/`, `/users/<id>/applications/`) rotalar tamam mı? | ✅ **Tanımlandı & Test Edildi** |
 | **Model Uyumu** | Alan isimleri ve validasyon kuralları domain ile birebir örtüşüyor mu? | ✅ **Birebir Uyumlu (TR/EN alias destekli)** |
@@ -798,13 +820,24 @@ python manage.py seed --seed 42
 | **Tekrar Çalışabilirlik** | Seeder defalarca çalıştırıldığında mükerrer kayıt üretiyor mu? | ✅ **%100 İdempotent (Duplicate Önleme)** |
 | **CRUD İşlemleri** | Hem Web hem API üzerinden Duyuru, İlan ve Başvuru işlemleri çalışıyor mu? | ✅ **Aktif (Veritabanı / DB Connection)** |
 | **Kalıcılık Testi** | Sunucu kapatılıp açıldığında girilen veriler veritabanında kalıyor mu? | ✅ **Kalıcı (SQLite & PostgreSQL ACID)** |
-| **Dokümantasyon** | `swagger.json` güncel ve OpenAPI 3.0 ile tam uyumlu mu? | ⏳ Adım 6'da |
-| **Regresyon Güvencesi** | Tüm birim ve entegrasyon testleri başarıyla geçiyor mu? | ✅ **Geçiyor (Yeşil)** |
+| **Dokümantasyon** | İlan oluşturma ve güncelleme şemaları Swagger’da tanımlı mı? | ✅ **Doğrudan ve kullanıcıya bağlı rotalar belgelendi** |
+| **HTTP Hata Yönetimi** | Web ve API yanıtlarında 404 ile 5xx davranışları doğrulandı mı? | ✅ **Ortak web sayfaları, API JSON yanıtları ve durum kodları test edildi** |
+| **Regresyon Güvencesi** | Tüm birim ve entegrasyon testleri başarıyla geçiyor mu? | ✅ **116 test geçti** |
 
 
 ---
 
-> 🎯 **Sonraki Adım:** Adım 6 - `swagger.json` OpenAPI spesifikasyonunun duyuru uç noktalarıyla senkronize edilmesi; akabinde Adım 8'deki `JobPostingService` ve controller katmanlarının inşası.
+## 10. HTTP Hata Yanıtları ve İstek Kayıtları
 
+[`core/middleware.py`](./core/middleware.py) web ve API yanıtlarına ortak hata davranışı uygular. Middleware’ler [`core/settings.py`](./core/settings.py) içinde kayıtlıdır.
 
+| Middleware | Yanıt davranışı |
+| :--- | :--- |
+| `handle_not_found` | Bilinmeyen web rotaları ve bulunamayan kayıtlar `templates/404.html` ile aynı URL’de HTTP `404` gösterir. Tanımsız API rotaları `{"status":"error","message":"İstenen API adresi bulunamadı."}` döndürür. Tanımlı API rotalarında kayda özgü JSON hata yanıtı korunur. |
+| `guard_server_errors` | Django’dan dönen `500–599` yanıtlarının durum kodunu korur. Web için `templates/server_error.html`, API için `{"status":"error","message":"Sunucu isteği şu anda işleyemiyor."}` kullanılır. Yanıta `no-store` eklenir ve varsa `Retry-After` başlığı korunur. |
+| `log_requests` | İstek zincirinin dışından son yanıtı kaydeder. Terminalde `time`, `method`, `route`, `res.type` ve `duration` başlıkları ilk satırda, değerler ikinci satırda gösterilir. Süre milisaniye cinsindendir. |
+
+Bir ilan veya başvuru bulunamadığında ya da iç içe rotadaki üst kayıtla eşleşmediğinde web controller’ı `Http404` üretir. Bu yanıt, ortak web 404 sayfasından geçer.
+
+5xx istek kayıtları `ERROR` seviyesinde terminale ve `logs/error.logs` dosyasına eklenir. Dosya çalışma zamanında oluşturulur. `logs/` dizini Git ve Docker derleme bağlamı dışında tutulur.
 

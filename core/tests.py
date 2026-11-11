@@ -1,12 +1,142 @@
 import json
+import re
 from io import StringIO
-from django.test import TestCase, Client
+from logging import getLogger
+from unittest.mock import patch
+
+from django.test import SimpleTestCase, TestCase, Client, override_settings
 from django.core.management import call_command
+from django.db import DataError, IntegrityError, transaction
+from django.http import HttpResponse
 from core.models import UserProfile, Announcement, JobPosting, Application
 from core.database.factories import UserProfileFactory, AnnouncementFactory
 from core.database.seeders import UserProfileSeeder, AnnouncementSeeder, DatabaseSeeder
-from core.services import announcement_service, application_service
+from core.services import announcement_service, application_service, job_posting_service
 from announcement_model import AnnouncementValidationError, AnnouncementNotFoundError
+
+
+class RequestLoggingTestCase(TestCase):
+    def test_logs_aligned_headers_and_values_per_request(self):
+        output = StringIO()
+        console_handler = getLogger("core.middleware").handlers[0]
+
+        with patch.object(console_handler, "stream", output):
+            health = self.client.get("/api/health/?check=ready")
+            created = self.client.post("/api/users/", {
+                "name": "Log Testi",
+                "birth_date": "2000-01-01",
+                "city": "İstanbul",
+                "school": "Test Üniversitesi",
+            }, content_type="application/json")
+            missing = self.client.get("/jobs/jfaşasdş")
+
+        self.assertEqual((health.status_code, created.status_code, missing.status_code), (200, 201, 404))
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 6)
+        for headers, values, request_info in zip(lines[::2], lines[1::2], (
+            ["get", "/api/health/", "200"],
+            ["post", "/api/users/", "201"],
+            ["get", "/jobs/jfa%C5%9Fasd%C5%9F", "404"],
+        )):
+            self.assertEqual(headers.split(), ["time", "method", "route", "res.type", "duration"])
+            timestamp, method, route, status, duration = values.split()
+            self.assertRegex(timestamp, r"^\d{2}\.\d{2}\.\d{2}$")
+            self.assertEqual([method, route, status], request_info)
+            self.assertRegex(duration, r"^\d+ms$")
+            self.assertEqual(
+                [cell.start() for cell in re.finditer(r"\S+", headers)],
+                [cell.start() for cell in re.finditer(r"\S+", values)],
+            )
+
+
+class NotFoundMiddlewareTestCase(TestCase):
+    @override_settings(DEBUG=True)
+    def test_unknown_web_route_renders_404_page(self):
+        response = self.client.get("/olmayan-sayfa/")
+
+        self.assertContains(response, "Sayfa bulunamadı", status_code=404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_unknown_api_route_returns_json(self):
+        response = self.client.get("/api/olmayan-rota/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(), {
+            "status": "error",
+            "message": "İstenen API adresi bulunamadı.",
+        })
+
+    def test_missing_record_keeps_its_api_error(self):
+        response = self.client.get("/api/users/999999/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("999999", response.json()["message"])
+
+    def test_missing_web_records_use_generic_page(self):
+        for route in (
+            "/users/999999/",
+            "/announcements/999999/",
+            "/jobs/999999/",
+            "/applications/999999/",
+        ):
+            with self.subTest(route=route):
+                response = self.client.get(route)
+                self.assertContains(response, "Ana sayfaya dön", status_code=404)
+                self.assertTemplateUsed(response, "404.html")
+
+    def test_missing_web_records_on_write_use_generic_page(self):
+        for route, data in (
+            ("/jobs/999999/delete/", {"_method": "DELETE"}),
+            ("/applications/999999/", {"action": "STATUS", "status": "IN_REVIEW"}),
+            ("/applications/999999/delete/", {"action": "DELETE"}),
+        ):
+            with self.subTest(route=route, data=data):
+                response = self.client.post(route, data)
+                self.assertEqual(response.status_code, 404)
+                self.assertTemplateUsed(response, "404.html")
+
+
+class ServerErrorGuardianTestCase(SimpleTestCase):
+    @override_settings(DEBUG=True)
+    def test_unhandled_exception_shows_safe_web_page(self):
+        with (
+            patch.object(job_posting_service, "get_all_job_postings", side_effect=RuntimeError("internal detail")),
+            self.assertLogs("django.request", level="ERROR"),
+            self.assertLogs("core.middleware", level="ERROR"),
+        ):
+            response = Client(raise_request_exception=False).get("/jobs/")
+
+        self.assertContains(response, "500 · Sunucu hatası", status_code=500)
+        self.assertNotContains(response, "internal detail", status_code=500)
+
+    def test_api_error_hides_controller_exception_details(self):
+        with (
+            patch.object(job_posting_service, "get_all_job_postings", side_effect=RuntimeError("internal detail")),
+            self.assertLogs("core.middleware", level="ERROR"),
+        ):
+            response = self.client.get("/api/jobs/")
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {
+            "status": "error",
+            "message": "Sunucu isteği şu anda işleyemiyor.",
+        })
+
+    def test_guard_preserves_503_and_retry_after(self):
+        unavailable = HttpResponse(
+            "internal detail", status=503, reason="internal detail", headers={"Retry-After": "60"}
+        )
+        with (
+            patch("core.controllers.api_job_posting_controller.ApiJobPostingController.list", return_value=unavailable),
+            self.assertLogs("core.middleware", level="ERROR") as logs,
+        ):
+            response = self.client.get("/api/jobs/")
+
+        self.assertNotContains(response, "internal detail", status_code=503)
+        self.assertEqual(response.reason_phrase, "Service Unavailable")
+        self.assertEqual(response["Retry-After"], "60")
+        self.assertIn("no-store", response["Cache-Control"])
+        self.assertEqual(logs.records[0].getMessage().splitlines()[1].split()[3], "503")
 
 
 class HomeRouteTestCase(TestCase):
@@ -725,6 +855,14 @@ class JobPostingModelTestCase(TestCase):
         )
         self.assertTrue(job.is_expired)
 
+    def test_database_rejects_title_longer_than_120_characters(self):
+        with self.assertRaises((DataError, IntegrityError)), transaction.atomic():
+            JobPosting.objects.create(
+                title="Ş" * 121,
+                company_name="Test Co",
+                contact_email="test@example.com",
+            )
+
     def test_job_posting_to_dict(self):
         job = JobPosting.objects.create(
             poster=self.user,
@@ -795,18 +933,70 @@ class JobPostingRoutesTestCase(TestCase):
         self.assertContains(res, 'Veri Bilimci')
 
     def test_direct_web_create(self):
-        """Doğrudan Web rota: POST /jobs/create/"""
+        """Web formundan yayınlanan ilan varsayılan olarak başvuru kabul eder."""
         res = self.client.post('/jobs/create/', {
             'title': 'DevOps Mühendisi',
             'company_name': 'CloudNet',
-            'description': 'AWS ve Kubernetes konusunda deneyimli.',
             'employment_type': 'REMOTE',
-            'location': 'Remote',
-            'contact_email': 'devops@cloudnet.com',
-            'is_active': 'on'
+            'contact_email': 'devops@cloudnet.com'
         })
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(JobPosting.objects.filter(title='DevOps Mühendisi').exists())
+        job = JobPosting.objects.get(title='DevOps Mühendisi')
+        self.assertTrue(job.is_active)
+        self.assertEqual(job.location, "")
+        self.assertEqual(job.description, "")
+
+        res = self.client.post(f'/jobs/{job.id}/applications/create/', {
+            'applicant_id': self.user.id
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(Application.objects.filter(job=job, applicant=self.user).exists())
+
+    def test_job_write_required_fields_and_title_length(self):
+        create_url = "/api/jobs/"
+        payload = {"title": "Ş" * 120, "company": "Test Co", "contact_email": "test@example.com"}
+        response = self.client.post(create_url, payload, content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        saved = response.json()["job_posting"]
+        self.assertEqual(saved["title"], payload["title"])
+        self.assertEqual(saved["location"], "")
+        self.assertEqual(saved["description"], "")
+
+        detail_url = f"/api/jobs/{saved['id']}/"
+        for write, url in ((self.client.post, create_url), (self.client.put, detail_url)):
+            for field in ("title", "company"):
+                with self.subTest(method=write.__name__, missing=field):
+                    invalid = {key: value for key, value in payload.items() if key != field}
+                    self.assertEqual(write(url, invalid, content_type="application/json").status_code, 400)
+            too_long = {**payload, "title": "Ş" * 121}
+            self.assertEqual(write(url, too_long, content_type="application/json").status_code, 400)
+
+        for invalid in ({"title": "Ş" * 121}, {"title": None}, {"company_name": "   "}):
+            with self.subTest(patch=invalid):
+                response = self.client.patch(detail_url, invalid, content_type="application/json")
+                self.assertEqual(response.status_code, 400)
+        self.assertEqual(JobPosting.objects.get(pk=saved["id"]).title, payload["title"])
+
+    def test_put_and_patch_optional_job_fields(self):
+        url = f"/api/users/{self.user.id}/jobs/{self.job1.id}/"
+        response = self.client.patch(url, {"city": "Ankara"}, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["job_posting"]["location"], "Ankara")
+        self.assertEqual(response.json()["job_posting"]["description"], self.job1.description)
+
+        response = self.client.patch(url, {"description": None}, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["job_posting"]["description"], "")
+        self.assertEqual(response.json()["job_posting"]["location"], "Ankara")
+
+        response = self.client.put(url, {
+            "title": self.job1.title,
+            "company_name": self.job1.company_name,
+            "contact_email": self.job1.contact_email,
+        }, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["job_posting"]["location"], "")
+        self.assertEqual(response.json()["job_posting"]["description"], "")
 
     def test_direct_api_crud(self):
         """Doğrudan REST API rotaları: /api/jobs/"""

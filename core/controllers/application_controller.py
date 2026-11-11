@@ -26,7 +26,7 @@ Rotalar:
 
 from typing import Optional
 from django.shortcuts import render, redirect
-from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from core.models import UserProfile, JobPosting, Application
 from core.services import application_service
@@ -144,37 +144,24 @@ class ApplicationController:
         """Tekil başvuru detayını gösterir."""
         try:
             app = self.service.get_application_by_id(application_id)
-            if job_id is not None and app.job_id != job_id:
-                return self.list(
-                    request,
-                    job_id=job_id,
-                    error=f"{application_id} ID'li başvuru {job_id} ID'li ilana ait değil."
-                )
-            if user_id is not None and app.applicant_id != user_id:
-                return self.list(
-                    request,
-                    user_id=user_id,
-                    error=f"{application_id} ID'li başvuru {user_id} ID'li mezuna ait değil."
-                )
+        except ApplicationNotFoundError as exc:
+            raise Http404 from exc
+        if job_id is not None and app.job_id != job_id:
+            raise Http404
+        if user_id is not None and app.applicant_id != user_id:
+            raise Http404
 
-            return render(request, "applications.html", {
-                "selected_application": app,
-                "applications": self.service.get_all_applications(),
-                "jobs": JobPosting.objects.filter(is_active=True),
-                "users": UserProfile.objects.all(),
-                "target_job": app.job if job_id is not None else None,
-                "target_user": app.applicant if user_id is not None else None,
-                "is_nested_job": job_id is not None,
-                "is_nested_user": user_id is not None,
-                "statuses": Application.STATUS_CHOICES,
-            })
-        except ApplicationNotFoundError:
-            return self.list(
-                request,
-                job_id=job_id,
-                user_id=user_id,
-                error=f"{application_id} ID'li başvuru bulunamadı."
-            )
+        return render(request, "applications.html", {
+            "selected_application": app,
+            "applications": self.service.get_all_applications(),
+            "jobs": JobPosting.objects.filter(is_active=True),
+            "users": UserProfile.objects.all(),
+            "target_job": app.job if job_id is not None else None,
+            "target_user": app.applicant if user_id is not None else None,
+            "is_nested_job": job_id is not None,
+            "is_nested_user": user_id is not None,
+            "statuses": Application.STATUS_CHOICES,
+        })
 
     # --------------------------------------------------------------------------
     # 3. CREATE (Direct, Job-Nested & User-Nested)
@@ -227,9 +214,9 @@ class ApplicationController:
         try:
             app = self.service.get_application_by_id(application_id)
             if job_id is not None and app.job_id != job_id:
-                return self.list(request, job_id=job_id, error="Başvuru bu ilana ait değil.")
+                raise Http404
             if user_id is not None and app.applicant_id != user_id:
-                return self.list(request, user_id=user_id, error="Başvuru bu kullanıcıya ait değil.")
+                raise Http404
 
             if not new_status:
                 return self.list(request, job_id=job_id, user_id=user_id, error="Yeni durum belirtilmedi.")
@@ -241,8 +228,8 @@ class ApplicationController:
                 user_id=user_id,
                 success=f"{application_id} ID'li başvuru durumu '{new_status}' olarak güncellendi."
             )
-        except ApplicationNotFoundError:
-            return self.list(request, job_id=job_id, user_id=user_id, error=f"{application_id} ID'li başvuru bulunamadı.")
+        except ApplicationNotFoundError as exc:
+            raise Http404 from exc
         except ApplicationValidationError as exc:
             return self.list(request, job_id=job_id, user_id=user_id, error=str(exc))
 
@@ -260,9 +247,9 @@ class ApplicationController:
         try:
             app = self.service.get_application_by_id(application_id)
             if job_id is not None and app.job_id != job_id:
-                return self.list(request, job_id=job_id, error=f"{application_id} ID'li başvuru bu ilana ait değil.")
+                raise Http404
             if user_id is not None and app.applicant_id != user_id:
-                return self.list(request, user_id=user_id, error=f"{application_id} ID'li başvuru bu kullanıcıya ait değil.")
+                raise Http404
 
             self.service.delete_application(application_id)
             return self.list(
@@ -271,8 +258,8 @@ class ApplicationController:
                 user_id=user_id,
                 success=f"{application_id} ID'li başvuru başarıyla silindi."
             )
-        except ApplicationNotFoundError:
-            return self.list(request, job_id=job_id, user_id=user_id, error=f"{application_id} ID'li başvuru bulunamadı.")
+        except ApplicationNotFoundError as exc:
+            raise Http404 from exc
 
     # --------------------------------------------------------------------------
     # ENTRY POINT / DISPATCHER

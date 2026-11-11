@@ -68,6 +68,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'core.middleware.log_requests',
+    'core.middleware.guard_server_errors',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,7 +77,35 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.handle_not_found',
 ]
+
+_log_dir = BASE_DIR / 'logs'
+_log_dir.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'request_console': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+        },
+        'error_file': {
+            'class': 'logging.FileHandler',
+            'level': 'ERROR',
+            'filename': str(_log_dir / 'error.logs'),
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'core.middleware': {
+            'handlers': ['request_console', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 ROOT_URLCONF = 'core.urls'
 

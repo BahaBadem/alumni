@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>404 · Sayfa bulunamadı | Alumni Portal</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0;
+            background: #f8fafc;
+            color: #0f172a;
+            font: 1rem/1.6 system-ui, sans-serif;
+        }
+
+        header {
+            border-bottom: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            width: fit-content;
+            margin: 1rem clamp(1.25rem, 5vw, 4rem);
+            color: #172554;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 2rem;
+            height: 2rem;
+            place-items: center;
+            border-radius: 0.6rem;
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            align-self: center;
+            width: min(56rem, calc(100% - 2.5rem));
+            margin: 2rem auto;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 60px rgb(30 58 138 / 9%);
+        }
+
+        .message {
+            align-self: center;
+            padding: clamp(2rem, 5vw, 4rem);
+        }
+
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: clamp(2rem, 4vw, 3.15rem);
+            letter-spacing: -0.045em;
+            line-height: 1.08;
+        }
+
+        p {
+            max-width: 32ch;
+            margin: 0 0 1.75rem;
+            color: #475569;
+        }
+
+        .home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.65rem;
+            background: #1d4ed8;
+            color: #fff;
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .home-link:hover { background: #1e40af; }
+        a:focus-visible { outline: 3px solid #2563eb; outline-offset: 4px; }
+
+        .error-code {
+            display: grid;
+            min-height: 22rem;
+            place-items: center;
+            background:
+                repeating-radial-gradient(circle at center, transparent 0 2.75rem, #ffffff20 2.75rem calc(2.75rem + 1px)),
+                linear-gradient(145deg, #1e3a8a, #2563eb);
+            color: #fff;
+            font-size: clamp(5rem, 12vw, 9rem);
+            font-weight: 750;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.07em;
+            line-height: 1;
+        }
+
+        @media (max-width: 42rem) {
+            main { grid-template-columns: 1fr; }
+            .error-code { grid-row: 1; min-height: 10.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a class="brand" href="{% url 'home' %}">
+            <span class="brand-mark" aria-hidden="true">A</span>
+            Alumni Portal
+        </a>
+    </header>
+    <main>
+        <div class="message">
+            <h1>Sayfa bulunamadı</h1>
+            <p>Adres değişmiş, sayfa kaldırılmış veya bağlantı hatalı olabilir.</p>
+            <a class="home-link" href="{% url 'home' %}">
+                <span aria-hidden="true">←</span>
+                Ana sayfaya dön
+            </a>
+        </div>
+        <div class="error-code">404</div>
+    </main>
+</body>
+</html>

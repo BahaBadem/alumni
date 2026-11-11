@@ -9,7 +9,7 @@ operasyonlarını icra eden JobPostingController sınıfını içerir.
 
 from typing import Optional
 from django.shortcuts import render, redirect
-from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from core.models import UserProfile, JobPosting
 from core.services import job_posting_service
@@ -93,22 +93,18 @@ class JobPostingController:
         """Tekil ilan detayını gösterir."""
         try:
             job = self.service.get_job_posting_by_id(job_id)
-            if user_id is not None and job.poster_id != user_id:
-                return self.list(
-                    request,
-                    user_id=user_id,
-                    error=f"{job_id} ID'li ilan {user_id} ID'li kullanıcıya ait değil."
-                )
+        except JobPostingNotFoundError as exc:
+            raise Http404 from exc
+        if user_id is not None and job.poster_id != user_id:
+            raise Http404
 
-            return render(request, "job_postings.html", {
-                "selected_job": job,
-                "jobs": self.service.get_all_job_postings(),
-                "users": UserProfile.objects.all(),
-                "is_nested": user_id is not None,
-                "employment_types": JobPosting.EMPLOYMENT_TYPES,
-            })
-        except JobPostingNotFoundError:
-            return self.list(request, user_id=user_id, error=f"{job_id} ID'li ilan bulunamadı.")
+        return render(request, "job_postings.html", {
+            "selected_job": job,
+            "jobs": self.service.get_all_job_postings(),
+            "users": UserProfile.objects.all(),
+            "is_nested": user_id is not None,
+            "employment_types": JobPosting.EMPLOYMENT_TYPES,
+        })
 
     # --------------------------------------------------------------------------
     # 3. CREATE (Direct & Nested)
@@ -121,15 +117,15 @@ class JobPostingController:
         """Form üzerinden yeni ilan ekler."""
         p = request.POST
         title = p.get("title") or p.get("baslik", "")
-        company_name = p.get("company_name") or p.get("sirket", "")
+        company_name = p.get("company_name") or p.get("company") or p.get("sirket", "")
         description = p.get("description") or p.get("aciklama", "")
         employment_type = p.get("employment_type") or p.get("is_tipi", "FULL_TIME")
-        location = p.get("location") or p.get("konum", "İstanbul / Hibrit")
+        location = p.get("location") or p.get("city") or p.get("konum") or p.get("sehir", "")
         salary_range = p.get("salary_range") or p.get("maas_araligi") or None
         contact_email = p.get("contact_email") or p.get("iletisim_eposta", "")
         application_url = p.get("application_url") or p.get("basvuru_linki") or None
         deadline = p.get("deadline") or p.get("son_basvuru_tarihi") or None
-        is_active = p.get("is_active") in ("1", "true", "on", "yes", True)
+        is_active = p.get("is_active", "true").lower() in ("1", "true", "on", "yes")
 
         poster_id = user_id if user_id is not None else p.get("poster_id") or p.get("ilan_sahibi_id") or None
 
@@ -164,12 +160,12 @@ class JobPostingController:
         try:
             job = self.service.get_job_posting_by_id(job_id)
             if user_id is not None and job.poster_id != user_id:
-                return self.list(request, user_id=user_id, error=f"{job_id} ID'li ilan bu kullanıcıya ait değil.")
+                raise Http404
 
             self.service.delete_job_posting(job_id)
             return self.list(request, user_id=user_id, success=f"{job_id} ID'li iş ilanı silindi.")
-        except JobPostingNotFoundError:
-            return self.list(request, user_id=user_id, error=f"{job_id} ID'li ilan bulunamadı.")
+        except JobPostingNotFoundError as exc:
+            raise Http404 from exc
 
     # --------------------------------------------------------------------------
     # ENTRY POINT / DISPATCHER

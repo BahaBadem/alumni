@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ status_code }} · Sunucu hatası | Alumni Portal</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem 1rem;
+            background: #f8fafc;
+            color: #0f172a;
+            font: 1rem/1.6 system-ui, sans-serif;
+        }
+
+        main {
+            max-width: 32rem;
+            margin: 10vh auto 0;
+            padding: 2rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+        }
+
+        h1 { margin-top: 0; }
+        a { color: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>{{ status_code }} · Sunucu hatası</h1>
+        <p>Sunucu isteği şu anda işleyemiyor. Lütfen daha sonra tekrar dene.</p>
+        <a href="/">Ana sayfaya dön</a>
+    </main>
+</body>
+</html>

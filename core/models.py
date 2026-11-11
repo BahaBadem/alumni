@@ -1,5 +1,10 @@
 from django.db import models
+from django.db.models.functions import Length
+from django.db.models.lookups import LessThanOrEqual
 from django.utils import timezone
+
+
+JOB_TITLE_MAX_LENGTH = 120
 
 
 class UserProfile(models.Model):
@@ -103,9 +108,9 @@ class JobPosting(models.Model):
         related_name='job_postings',
         verbose_name="İlanı Veren Mezun/Yetkili"
     )
-    title = models.CharField(max_length=200, db_index=True, verbose_name="Pozisyon Başlığı")
+    title = models.CharField(max_length=JOB_TITLE_MAX_LENGTH, db_index=True, verbose_name="Pozisyon Başlığı")
     company_name = models.CharField(max_length=150, db_index=True, verbose_name="Şirket / Kurum Adı")
-    description = models.TextField(verbose_name="İş Tanımı ve Aranan Nitelikler")
+    description = models.TextField(blank=True, verbose_name="İş Tanımı ve Aranan Nitelikler")
     employment_type = models.CharField(
         max_length=50,
         choices=EMPLOYMENT_TYPES,
@@ -113,7 +118,7 @@ class JobPosting(models.Model):
         db_index=True,
         verbose_name="Çalışma Şekli"
     )
-    location = models.CharField(max_length=100, db_index=True, verbose_name="Lokasyon / Şehir")
+    location = models.CharField(max_length=100, db_index=True, blank=True, verbose_name="Lokasyon / Şehir")
     salary_range = models.CharField(max_length=100, blank=True, null=True, verbose_name="Maaş Skalası")
     contact_email = models.EmailField(max_length=100, verbose_name="İletişim / Başvuru E-postası")
     application_url = models.URLField(max_length=255, blank=True, null=True, verbose_name="Harici Başvuru URL")
@@ -130,6 +135,12 @@ class JobPosting(models.Model):
             models.Index(fields=['is_active', '-created_at'], name='core_job_active_created_idx'),
             models.Index(fields=['employment_type', 'is_active'], name='core_job_type_active_idx'),
             models.Index(fields=['location', 'is_active'], name='core_job_loc_active_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=LessThanOrEqual(Length("title"), JOB_TITLE_MAX_LENGTH),
+                name="core_job_title_max_120",
+            ),
         ]
 
     def __str__(self):

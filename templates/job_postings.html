@@ -536,7 +536,9 @@
 
                             <div class="badge-list">
                                 <span class="badge badge-type">💼 {{ job.get_employment_type_display }}</span>
-                                <span class="badge badge-location">📍 {{ job.location }}</span>
+                                {% if job.location %}
+                                    <span class="badge badge-location">📍 {{ job.location }}</span>
+                                {% endif %}
                                 {% if job.salary_range %}
                                     <span class="badge badge-salary">💰 {{ job.salary_range }}</span>
                                 {% endif %}
@@ -545,7 +547,9 @@
                                 {% endif %}
                             </div>
 
-                            <p class="job-desc">{{ job.description }}</p>
+                            {% if job.description %}
+                                <p class="job-desc">{{ job.description }}</p>
+                            {% endif %}
 
                             <div class="job-footer">
                                 <div>
@@ -590,7 +594,7 @@
                         {% csrf_token %}
                         <div class="form-group">
                             <label for="title">Pozisyon Başlığı *</label>
-                            <input type="text" id="title" name="title" required placeholder="Örn: Kıdemli Python Geliştirici">
+                            <input type="text" id="title" name="title" required maxlength="120" placeholder="Örn: Kıdemli Python Geliştirici">
                         </div>
                         <div class="form-group">
                             <label for="company_name">Şirket / Kurum Adı *</label>
@@ -608,8 +612,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="location">Konum / Şehir *</label>
-                            <input type="text" id="location" name="location" value="İstanbul (Hibrit)" required>
+                            <label for="location">Konum / Şehir (Opsiyonel)</label>
+                            <input type="text" id="location" name="location" maxlength="100" placeholder="Örn: İstanbul (Hibrit)">
                         </div>
                         <div class="form-group">
                             <label for="salary_range">Maaş Aralığı (Opsiyonel)</label>
@@ -639,8 +643,8 @@
                             </div>
                         {% endif %}
                         <div class="form-group">
-                            <label for="description">İş Tanımı & Nitelikler *</label>
-                            <textarea id="description" name="description" rows="4" required placeholder="Pozisyon görevleri ve aranan yetkinlikler (en az 10 karakter)..."></textarea>
+                            <label for="description">İş Tanımı & Nitelikler (Opsiyonel)</label>
+                            <textarea id="description" name="description" rows="4" minlength="10" placeholder="Pozisyon görevleri ve aranan yetkinlikler (en az 10 karakter)..."></textarea>
                         </div>
                         <button type="submit" class="btn" style="width: 100%;">🚀 İlanı Hemen Yayınla</button>
                     </form>

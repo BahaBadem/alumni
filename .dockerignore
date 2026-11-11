@@ -29,5 +29,6 @@ db.sqlite3.backup
 
 # Logs & Coverage
 *.log
+logs/
 .coverage
 htmlcov/

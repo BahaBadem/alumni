@@ -23,6 +23,10 @@
     {
       "name": "Users",
       "description": "Kullanıcı CRUD (Kayıt, Listeleme, Güncelleme, Silme) operasyonları"
+    },
+    {
+      "name": "Jobs",
+      "description": "İş ve staj ilanlarını oluşturma ve güncelleme"
     }
   ],
   "paths": {
@@ -296,10 +300,179 @@
           }
         }
       }
+    },
+    "/api/jobs/": {
+      "post": {
+        "tags": ["Jobs"],
+        "summary": "İş ilanı oluştur",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingWrite" },
+        "responses": {
+          "201": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/": {
+      "parameters": [{ "$ref": "#/components/parameters/JobPostingId" }],
+      "put": {
+        "tags": ["Jobs"],
+        "summary": "İş ilanını tam güncelle",
+        "description": "Gönderilmeyen şehir ve iş tanımı alanları boşaltılır.",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingWrite" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" },
+          "404": { "description": "İlan bulunamadı" }
+        }
+      },
+      "patch": {
+        "tags": ["Jobs"],
+        "summary": "İş ilanını kısmi güncelle",
+        "description": "Gönderilmeyen alanlar korunur. Şehir ve iş tanımı boş metin veya null gönderilerek temizlenebilir.",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingPatch" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" },
+          "404": { "description": "İlan bulunamadı" }
+        }
+      }
+    },
+    "/api/users/{user_id}/jobs/": {
+      "parameters": [{ "$ref": "#/components/parameters/JobPosterId" }],
+      "post": {
+        "tags": ["Jobs"],
+        "summary": "Kullanıcı adına iş ilanı oluştur",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingWrite" },
+        "responses": {
+          "201": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" },
+          "404": { "description": "Kullanıcı bulunamadı" }
+        }
+      }
+    },
+    "/api/users/{user_id}/jobs/{job_id}/": {
+      "parameters": [
+        { "$ref": "#/components/parameters/JobPosterId" },
+        { "$ref": "#/components/parameters/JobPostingId" }
+      ],
+      "put": {
+        "tags": ["Jobs"],
+        "summary": "Kullanıcının iş ilanını tam güncelle",
+        "description": "Gönderilmeyen şehir ve iş tanımı alanları boşaltılır.",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingWrite" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" },
+          "404": { "description": "Kullanıcı veya kullanıcıya ait ilan bulunamadı" }
+        }
+      },
+      "patch": {
+        "tags": ["Jobs"],
+        "summary": "Kullanıcının iş ilanını kısmi güncelle",
+        "description": "Gönderilmeyen alanlar korunur. Şehir ve iş tanımı boş metin veya null gönderilerek temizlenebilir.",
+        "requestBody": { "$ref": "#/components/requestBodies/JobPostingPatch" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/JobPostingSaved" },
+          "400": { "$ref": "#/components/responses/JobPostingValidationError" },
+          "404": { "description": "Kullanıcı veya kullanıcıya ait ilan bulunamadı" }
+        }
+      }
     }
   },
   "components": {
+    "parameters": {
+      "JobPostingId": {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer" }
+      },
+      "JobPosterId": {
+        "name": "user_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer" }
+      }
+    },
+    "requestBodies": {
+      "JobPostingWrite": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/JobPostingFields" },
+                {
+                  "type": "object",
+                  "required": ["title", "contact_email"],
+                  "anyOf": [
+                    { "required": ["company_name"] },
+                    { "required": ["company"] }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "JobPostingPatch": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/JobPostingFields" }
+          }
+        }
+      }
+    },
+    "responses": {
+      "JobPostingSaved": {
+        "description": "İlan kaydedildi",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string", "example": "success" },
+                "message": { "type": "string" },
+                "job_posting": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/JobPostingFields" },
+                    { "type": "object", "properties": { "id": { "type": "integer" } } }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "JobPostingValidationError": {
+        "description": "İlan alanları eksik veya geçersiz",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
     "schemas": {
+      "JobPostingFields": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 3, "maxLength": 120, "example": "Yazılım Stajı" },
+          "company_name": { "type": "string", "minLength": 2, "maxLength": 150, "description": "Şirket adı. İsteklerde company adı da kabul edilir.", "example": "Teknoloji A.Ş." },
+          "company": { "type": "string", "minLength": 2, "maxLength": 150, "writeOnly": true, "description": "company_name alanının diğer adı." },
+          "location": { "type": "string", "maxLength": 100, "nullable": true, "description": "İsteğe bağlı şehir veya konum. İsteklerde city adı da kabul edilir." },
+          "city": { "type": "string", "maxLength": 100, "nullable": true, "writeOnly": true, "description": "location alanının diğer adı." },
+          "description": { "type": "string", "nullable": true, "description": "İsteğe bağlı iş tanımı. Doluysa en az 10 karakter olmalıdır." },
+          "contact_email": { "type": "string", "format": "email", "maxLength": 100, "example": "ik@example.com" },
+          "employment_type": { "type": "string", "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "REMOTE", "HYBRID", "CONTRACT"] },
+          "salary_range": { "type": "string", "maxLength": 100, "nullable": true },
+          "application_url": { "type": "string", "format": "uri", "maxLength": 255, "nullable": true },
+          "is_active": { "type": "boolean" },
+          "deadline": { "type": "string", "format": "date", "nullable": true },
+          "poster_id": { "type": "integer", "nullable": true }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "properties": {

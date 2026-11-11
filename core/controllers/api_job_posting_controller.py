@@ -42,14 +42,15 @@ def extract_json_payload(request: HttpRequest) -> Optional[Dict[str, Any]]:
     content_type = request.content_type or ""
     if "application/json" in content_type or (request.body and request.body.strip().startswith(b"{")):
         try:
-            return json.loads(request.body.decode("utf-8"))
+            payload = json.loads(request.body.decode("utf-8"))
+            return payload if isinstance(payload, dict) else None
         except Exception:
             return None
     if request.POST:
         return request.POST.dict()
     if request.body:
         try:
-            parsed = parse_qs(request.body.decode("utf-8"))
+            parsed = parse_qs(request.body.decode("utf-8"), keep_blank_values=True)
             return {k: v[0] for k, v in parsed.items()}
         except Exception:
             pass

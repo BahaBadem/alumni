@@ -13,7 +13,7 @@ from typing import List, Optional, Dict, Any, Union
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from core.models import JobPosting, UserProfile
+from core.models import JOB_TITLE_MAX_LENGTH, JobPosting, UserProfile
 
 
 class JobPostingValidationError(Exception):
@@ -59,24 +59,28 @@ def validate_job_posting_data(
     """İş ilanı alanlarının geçerliliğini denetler."""
     valid_emp_types = [choice[0] for choice in JobPosting.EMPLOYMENT_TYPES]
 
-    if not is_partial:
-        if not title or not str(title).strip():
+    if title is not None or not is_partial:
+        clean_title = str(title or "").strip()
+        if not clean_title:
             raise JobPostingValidationError("Pozisyon başlığı ('title') boş bırakılamaz.")
-        if not company_name or not str(company_name).strip():
+        if len(clean_title) < 3:
+            raise JobPostingValidationError("Pozisyon başlığı en az 3 karakter olmalıdır.")
+        if len(clean_title) > JOB_TITLE_MAX_LENGTH:
+            raise JobPostingValidationError(f"Pozisyon başlığı en fazla {JOB_TITLE_MAX_LENGTH} karakter olabilir.")
+
+    if company_name is not None or not is_partial:
+        clean_company = str(company_name or "").strip()
+        if not clean_company:
             raise JobPostingValidationError("Şirket / Kurum adı ('company_name') boş bırakılamaz.")
-        if not description or not str(description).strip():
-            raise JobPostingValidationError("İş tanımı ('description') boş bırakılamaz.")
-        if not contact_email or not str(contact_email).strip():
-            raise JobPostingValidationError("İletişim / Başvuru e-postası ('contact_email') boş bırakılamaz.")
+        if len(clean_company) < 2:
+            raise JobPostingValidationError("Şirket adı en az 2 karakter olmalıdır.")
 
-    if title is not None and len(str(title).strip()) < 3:
-        raise JobPostingValidationError("Pozisyon başlığı en az 3 karakter olmalıdır.")
-
-    if company_name is not None and len(str(company_name).strip()) < 2:
-        raise JobPostingValidationError("Şirket adı en az 2 karakter olmalıdır.")
-
-    if description is not None and len(str(description).strip()) < 10:
+    clean_description = str(description or "").strip()
+    if clean_description and len(clean_description) < 10:
         raise JobPostingValidationError("İş tanımı en az 10 karakter olmalıdır.")
+
+    if not is_partial and not str(contact_email or "").strip():
+        raise JobPostingValidationError("İletişim / Başvuru e-postası ('contact_email') boş bırakılamaz.")
 
     if employment_type is not None and employment_type != "":
         emp_clean = str(employment_type).strip().upper()
@@ -102,11 +106,11 @@ def validate_job_posting_data(
 
 
 def create_job_posting(
-    title: str,
-    company_name: str,
-    description: str,
+    title: str = "",
+    company_name: str = "",
+    description: str = "",
     employment_type: str = "FULL_TIME",
-    location: str = "İstanbul / Hibrit",
+    location: str = "",
     salary_range: Optional[str] = None,
     contact_email: str = "",
     application_url: Optional[str] = None,
@@ -120,10 +124,10 @@ def create_job_posting(
     Türkçe ve İngilizce parametreleri destekler.
     """
     final_title = str(title or extra_fields.get("baslik", "") or extra_fields.get("is_basligi", "")).strip()
-    final_company = str(company_name or extra_fields.get("sirket", "") or extra_fields.get("sirket_adi", "")).strip()
-    final_description = str(description or extra_fields.get("aciklama", "") or extra_fields.get("is_tanimi", "")).strip()
+    final_company = str(company_name or extra_fields.get("company") or extra_fields.get("sirket") or extra_fields.get("sirket_adi") or "").strip()
+    final_description = str(description or extra_fields.get("aciklama") or extra_fields.get("is_tanimi") or "").strip()
     final_emp_type = str(employment_type or extra_fields.get("is_tipi", "") or extra_fields.get("calisma_sekli", "FULL_TIME")).strip().upper()
-    final_location = str(location or extra_fields.get("konum", "") or extra_fields.get("sehir", "İstanbul / Hibrit")).strip()
+    final_location = str(location or extra_fields.get("city") or extra_fields.get("konum") or extra_fields.get("sehir") or "").strip()
     final_salary = salary_range or extra_fields.get("maas_araligi") or extra_fields.get("maas")
     final_email = str(contact_email or extra_fields.get("iletisim_eposta", "") or extra_fields.get("email", "")).strip()
     final_url = application_url or extra_fields.get("basvuru_linki") or extra_fields.get("basvuru_adresi")
@@ -203,11 +207,11 @@ def get_job_postings_by_user(user_id: int, active_only: bool = False) -> List[Jo
 
 def update_job_posting(
     job_id: int,
-    title: str,
-    company_name: str,
-    description: str,
+    title: str = "",
+    company_name: str = "",
+    description: str = "",
     employment_type: str = "FULL_TIME",
-    location: str = "İstanbul / Hibrit",
+    location: str = "",
     salary_range: Optional[str] = None,
     contact_email: str = "",
     application_url: Optional[str] = None,
@@ -220,10 +224,10 @@ def update_job_posting(
     job = get_job_posting_by_id(job_id)
 
     final_title = str(title or extra_fields.get("baslik", "") or extra_fields.get("is_basligi", "")).strip()
-    final_company = str(company_name or extra_fields.get("sirket", "") or extra_fields.get("sirket_adi", "")).strip()
-    final_description = str(description or extra_fields.get("aciklama", "") or extra_fields.get("is_tanimi", "")).strip()
+    final_company = str(company_name or extra_fields.get("company") or extra_fields.get("sirket") or extra_fields.get("sirket_adi") or "").strip()
+    final_description = str(description or extra_fields.get("aciklama") or extra_fields.get("is_tanimi") or "").strip()
     final_emp_type = str(employment_type or extra_fields.get("is_tipi", "") or extra_fields.get("calisma_sekli", "FULL_TIME")).strip().upper()
-    final_location = str(location or extra_fields.get("konum", "") or extra_fields.get("sehir", "İstanbul / Hibrit")).strip()
+    final_location = str(location or extra_fields.get("city") or extra_fields.get("konum") or extra_fields.get("sehir") or "").strip()
     final_salary = salary_range or extra_fields.get("maas_araligi") or extra_fields.get("maas")
     final_email = str(contact_email or extra_fields.get("iletisim_eposta", "") or extra_fields.get("email", "")).strip()
     final_url = application_url or extra_fields.get("basvuru_linki") or extra_fields.get("basvuru_adresi")
@@ -273,12 +277,14 @@ def patch_job_posting(job_id: int, **fields_to_update) -> JobPosting:
     aliases = {
         "baslik": "title",
         "is_basligi": "title",
+        "company": "company_name",
         "sirket": "company_name",
         "sirket_adi": "company_name",
         "aciklama": "description",
         "is_tanimi": "description",
         "is_tipi": "employment_type",
         "calisma_sekli": "employment_type",
+        "city": "location",
         "konum": "location",
         "sehir": "location",
         "maas_araligi": "salary_range",
@@ -297,6 +303,9 @@ def patch_job_posting(job_id: int, **fields_to_update) -> JobPosting:
     for k, v in fields_to_update.items():
         key = aliases.get(k, k)
         normalized[key] = v
+
+    for field in normalized.keys() & {"title", "company_name", "description", "location"}:
+        normalized[field] = str(normalized[field] or "").strip()
 
     if "deadline" in normalized:
         normalized["deadline"] = parse_date_value(normalized["deadline"])

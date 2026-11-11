@@ -1,7 +1,7 @@
 # ==============================================================================
 # ALUMNI PORTAL - DOCKERFILE
 # ==============================================================================
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Python çıktı tamponlamasını kapat ve bytecode (.pyc) yazımını devre dışı bırak
 ENV PYTHONUNBUFFERED=1 \
