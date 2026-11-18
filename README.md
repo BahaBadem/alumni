@@ -15,6 +15,7 @@
 ## 📌 İçindekiler
 
 - [📖 Proje Hakkında ve Vizyon](#-proje-hakkında-ve-vizyon)
+- [Marka ve Arayüz Rehberleri](#marka-ve-arayüz-rehberleri)
 - [🏛️ Mimari Tasarım: Django MVT'den Temiz MVC'ye](#-mimari-tasarım-django-mvtden-temiz-mvcyeye)
   - [Sorumlulukların Ayrımı (Separation of Concerns - SoC)](#sorumlulukların-ayrımı-separation-of-concerns---soc)
   - [Katmanlı Mimari Şeması](#katmanlı-mimari-şeması)
@@ -43,6 +44,13 @@
 **Alumni Portal**, üniversite mezunlarının kariyer gelişimlerini desteklemek, mevcut öğrenciler ile mezunlar arasında mentorluk köprüleri kurmak, üniversite etkinlik ve duyurularını tek bir çatı altında toplamak amacıyla geliştirilmektedir.
 
 Projede **Domain-Driven Design (DDD)** ilkeleri, **Temiz MVC mimarisi**, **kalıcı ilişkisel veritabanı (SQLite & PostgreSQL)**, **idempotent seeder altyapısı** ve **otomasyon testleri** esastır.
+
+---
+
+## Marka ve Arayüz Rehberleri
+
+- Marka paleti, tipografi ve Hakkımızda sayfasındaki kart hareketleri. [brand.md](./brand.md)
+- Dell 1996 esintili arayüz için renkler, yerleşim ve bileşen kuralları. [DESIGN.md](./DESIGN.md)
 
 ---
 

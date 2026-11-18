@@ -1,0 +1,15 @@
+<a class="skip" href="#main">İçeriğe geç</a>
+<header class="portal-header">
+    <div class="portal-width portal-header-inner">
+        <a class="portal-brand" href="{% url 'home' %}">
+            <span class="portal-mark" aria-hidden="true">A</span> Alumni Portal
+        </a>
+        <nav class="portal-nav" aria-label="Ana gezinme">
+            <a href="{% url 'users_page' %}"{% if active == "users" %} aria-current="page"{% endif %}>Mezunlar</a>
+            <a href="{% url 'announcements_page' %}"{% if active == "announcements" %} aria-current="page"{% endif %}>Duyurular</a>
+            <a href="{% url 'jobs_page' %}"{% if active == "jobs" %} aria-current="page"{% endif %}>İş ilanları</a>
+            <a href="{% url 'applications_page' %}"{% if active == "applications" %} aria-current="page"{% endif %}>Başvurular</a>
+            <a href="{% url 'about' %}"{% if active == "about" %} aria-current="page"{% endif %}>Hakkımızda</a>
+        </nav>
+    </div>
+</header>

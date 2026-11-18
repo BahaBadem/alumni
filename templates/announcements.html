@@ -1,411 +1,27 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alumni Portal | Duyuru Yönetim Paneli</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --secondary: #475569;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --success-bg: #d1fae5;
-            --error: #ef4444;
-            --error-bg: #fee2e2;
-            --badge-event: #8b5cf6;
-            --badge-career: #059669;
-            --badge-mentor: #d97706;
-            --badge-general: #2563eb;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Navbar */
-        header {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.25rem;
-            list-style: none;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover, .nav-links a.active {
-            color: var(--primary);
-        }
-
-        .badge-arch {
-            background: #e0e7ff;
-            color: #3730a3;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.6rem;
-            border-radius: 9999px;
-            font-weight: 600;
-        }
-
-        /* Main Container */
-        main {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-            flex: 1;
-            width: 100%;
-        }
-
-        .page-header {
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .page-header h1 {
-            font-size: 1.85rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .page-header p {
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 1rem 1.25rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 0.95rem;
-        }
-
-        .alert-success {
-            background: var(--success-bg);
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-
-        .alert-error {
-            background: var(--error-bg);
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 2rem;
-            align-items: start;
-        }
-
-        @media (max-width: 900px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            padding: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.75rem;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--secondary);
-            margin-bottom: 0.4rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.65rem 0.85rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            background: #ffffff;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-        textarea.form-control {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-check {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.7rem 1.25rem;
-            font-size: 0.95rem;
-            font-weight: 600;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #ffffff;
-            width: 100%;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .btn-danger {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 0.35rem 0.65rem;
-            font-size: 0.8rem;
-            border-radius: 6px;
-        }
-
-        .btn-danger:hover {
-            background: #fca5a5;
-        }
-
-        .btn-outline {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            color: var(--secondary);
-            padding: 0.35rem 0.65rem;
-            font-size: 0.8rem;
-        }
-
-        .btn-outline:hover {
-            background: #f1f5f9;
-        }
-
-        /* Filter Bar */
-        .filter-bar {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.25rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-bar input {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        /* Announcements List */
-        .announcement-item {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            transition: box-shadow 0.2s, transform 0.2s;
-        }
-
-        .announcement-item:hover {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
-        }
-
-        .announcement-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .announcement-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .badge-cat {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.55rem;
-            border-radius: 4px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        .cat-Etkinlik { background: var(--badge-event); }
-        .cat-Kariyer { background: var(--badge-career); }
-        .cat-Mentorluk { background: var(--badge-mentor); }
-        .cat-Genel { background: var(--badge-general); }
-
-        .announcement-title {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .announcement-author {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-        }
-
-        .announcement-content {
-            color: #334155;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-top: 0.5rem;
-            white-space: pre-line;
-        }
-
-        .announcement-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 1rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid #f1f5f9;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--text-muted);
-        }
-
-        /* Footer */
-        footer {
-            background: #ffffff;
-            border-top: 1px solid var(--border);
-            padding: 1.5rem;
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'portal/interior.css' %}">
 </head>
-<body>
+<body class="page-announcements">
 
     <!-- NAVBAR -->
-    <header>
-        <div class="nav-container">
-            <a href="/" class="logo">
-                <span>🎓</span> Alumni Portal
-            </a>
-            <ul class="nav-links">
-                <li><a href="/">Ana Sayfa</a></li>
-                <li><a href="/users/">Kullanıcılar</a></li>
-                <li><a href="/announcements/" class="active">Duyurular</a></li>
-                <li><a href="/api/swagger/">Swagger API</a></li>
-                <li><a href="/about/">Hakkında</a></li>
-                <li><span class="badge-arch" style="background: #dcfce7; color: #166534;">Database & ORM MVC</span></li>
-            </ul>
-        </div>
-    </header>
+    {% include "partials/portal_header.html" with active="announcements" %}
 
     <!-- MAIN CONTENT -->
-    <main>
-        <div class="page-header">
+    <main id="main" class="workspace" tabindex="-1">
+        <div class="page-banner">
             <div>
-                <h1>📢 Kampüs & Mezun Duyuru Yönetimi</h1>
-                <p>Veritabanı (SQLite / PostgreSQL) Bağlantılı ve Django ORM Destekli MVC Duyuru Yönetim Arayüzü</p>
+                <h1>Duyurular</h1>
+                <p>Kampüs haberlerini oku veya yeni bir duyuru yayımla.</p>
             </div>
             <div>
                 <a href="/api/announcements/" target="_blank" class="btn btn-outline">
-                    ⚡ REST API JSON Çıktısı (/api/announcements/)
+                    JSON olarak görüntüle ↗
                 </a>
             </div>
         </div>
@@ -430,9 +46,8 @@
             
             <!-- SOL KOLON: YENİ DUYURU FORMU -->
             <div class="card">
-                <div class="card-title">
-                    <span>➕ Yeni Duyuru Yayınla</span>
-                    <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">POST /announcements/create/</small>
+                <div class="panel-title">
+                    <h2>Yeni duyuru yayımla</h2>
                 </div>
 
                 <form method="POST" action="/announcements/create/">
@@ -482,8 +97,8 @@
 
             <!-- SAĞ KOLON: YAYINDAKİ DUYURULAR LİSTESİ -->
             <div class="card">
-                <div class="card-title">
-                    <span>📋 Yayındaki Duyurular</span>
+                <div class="panel-title">
+                    <h2>Yayımlanan duyurular</h2>
                     <span style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">
                         Toplam: {{ announcements|length }} Kayıt
                     </span>
@@ -491,11 +106,11 @@
 
                 <!-- ARAMA VE FİLTRELEME FORMU -->
                 <form method="GET" action="/announcements/" class="filter-bar">
-                    <input type="text" name="q" class="form-control" 
+                    <input type="text" name="q" class="form-control" aria-label="Duyurularda ara"
                            placeholder="Başlık veya içerikte ara..." 
                            value="{{ search_query|default:'' }}">
                     
-                    <select name="category" class="form-control" style="max-width: 160px;" onchange="this.form.submit()">
+                    <select name="category" class="form-control" aria-label="Duyuru kategorisi" onchange="this.form.submit()">
                         <option value="Tümü">Tüm Kategoriler</option>
                         <option value="Genel" {% if selected_category == 'Genel' %}selected{% endif %}>Genel</option>
                         <option value="Etkinlik" {% if selected_category == 'Etkinlik' %}selected{% endif %}>Etkinlik</option>
@@ -531,7 +146,7 @@
                             <div>
                                 <small style="color: var(--text-muted);">Duyuru Kimliği: #{{ item.id }}</small>
                             </div>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <div class="actions">
                                 <a href="/api/announcements/{{ item.id }}/" target="_blank" class="btn btn-outline" title="JSON Çıktısı">
                                     JSON Verisi
                                 </a>
@@ -552,7 +167,7 @@
                     <div class="empty-state">
                         <p style="font-size: 2rem; margin-bottom: 0.5rem;">📭</p>
                         <p>Henüz bu kriterlere uygun duyuru bulunmamaktadır.</p>
-                        <small>Sol taraftaki formu kullanarak ilk duyuruyu yayınlayabilirsiniz.</small>
+                        <small>Yeni bir duyuru yayımlamak için formu kullanabilirsiniz.</small>
                     </div>
                 {% endif %}
             </div>
@@ -561,12 +176,7 @@
     </main>
 
     <!-- FOOTER -->
-    <footer>
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <p><strong>Alumni Portal</strong> — Web Programming Mezun Yönetim Sistemi • MVC Architecture</p>
-            <p style="margin-top: 0.25rem;">Announcement Modülü: In-Memory Domain Model, Web/API Controller & Dynamic Interface</p>
-        </div>
-    </footer>
+    {% include "partials/portal_footer.html" %}
 
 </body>
 </html>

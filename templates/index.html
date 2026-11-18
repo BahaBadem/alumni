@@ -1,465 +1,305 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alumni Portal | Ana Sayfa</title>
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --secondary: #475569;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --accent: #f59e0b;
+            --paper: #f8f7f2;
+            --ink: #202c25;
+            --muted: #52635a;
+            --forest: #18362b;
+            --lime: #d9ecac;
+            --frame: #101713;
+            --link: #0000b8;
+            --alumni: #b3bd95;
+            --announcements: #e8ae9c;
+            --jobs: #abc5d5;
+            --applications: #b4bce9;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
+        * { box-sizing: border-box; }
         body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            line-height: 1.6;
             min-height: 100vh;
+            margin: 0;
+            border: 8px solid var(--frame);
+            background: var(--paper);
+            color: var(--ink);
+            font: 1rem/1.5 "Times New Roman", Times, serif;
+        }
+
+        a { color: var(--link); text-underline-offset: .22em; }
+        :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+        [hidden] { display: none !important; }
+        .wrap { width: min(70rem, calc(100% - 3rem)); margin-inline: auto; }
+        .sans, h2, h3 { font-family: Helvetica, Arial, sans-serif; }
+        .skip {
+            position: absolute;
+            z-index: 1;
+            top: .75rem;
+            left: .75rem;
+            padding: .65rem;
+            background: white;
+        }
+        .skip:not(:focus) { clip-path: inset(50%); }
+
+        header { background: var(--forest); color: var(--paper); border-bottom: 1px solid var(--frame); }
+        .masthead, .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: .25rem 1.5rem;
+            padding-block: .55rem;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: .65rem;
+            color: inherit;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .mark {
+            display: grid;
+            width: 2rem;
+            aspect-ratio: 1;
+            place-items: center;
+            background: var(--lime);
+            color: var(--forest);
+            font: 1.35rem Georgia, serif;
+        }
+        nav { display: flex; flex-wrap: wrap; column-gap: clamp(.6rem, 2vw, 1.5rem); }
+        nav a, .brand { display: inline-flex; align-items: center; min-height: 44px; }
+        header nav a { color: var(--paper); font-size: .9rem; font-weight: 700; text-decoration: none; }
+        header nav a:hover { text-decoration: underline; }
+
+        main { padding-block: 1.75rem 2rem; }
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr);
+            border: 1px solid var(--frame);
+            background: var(--forest);
+        }
+        .intro {
             display: flex;
             flex-direction: column;
-        }
-
-        /* Navbar */
-        header {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .nav-container {
-            max-width: 1100px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.25rem;
-            list-style: none;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        .badge-status {
-            background: #dbeafe;
-            color: var(--primary);
-            padding: 0.25rem 0.6rem;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        /* Hero */
-        .hero {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: white;
-            padding: 4rem 2rem 5rem;
-            text-align: center;
-        }
-
-        .hero-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            font-size: 2.75rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            letter-spacing: -0.025em;
-        }
-
-        .hero p {
-            font-size: 1.15rem;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-        }
-
-        .tags {
-            display: flex;
+            align-items: flex-start;
             justify-content: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            padding: clamp(1.35rem, 3.5vw, 2.9rem);
+            color: var(--paper);
         }
-
-        .tag {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(8px);
-            padding: 0.35rem 0.85rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            border: 1px solid rgba(255, 255, 255, 0.25);
+        h1 {
+            margin: 0;
+            font: 900 clamp(2.125rem, 4.4vw, 4rem)/1.02 "Arial Black", Helvetica, Arial, sans-serif;
+            letter-spacing: -.055em;
+            text-wrap: balance;
         }
-
-        /* Content Container */
-        .main-container {
-            max-width: 1100px;
-            margin: -2.5rem auto 3rem;
-            padding: 0 1.5rem;
-            flex: 1;
-            width: 100%;
+        h1 span { color: var(--lime); }
+        .intro p { max-width: 34ch; margin: 1rem 0 1.3rem; font-size: 1.15rem; }
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.1rem;
+            min-height: 44px;
+            padding: .55rem .9rem;
+            background: var(--lime);
+            color: var(--forest);
+            font-size: .9rem;
+            font-weight: 700;
+            text-decoration: none;
         }
+        .button:hover { text-decoration: underline; }
+        .button:focus-visible { outline-color: var(--paper); }
+        .campus { position: relative; margin: 0; min-height: 20rem; background: var(--alumni); }
+        .campus img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-        /* Section Cards */
+        .directory { margin-block: 1.65rem 1.5rem; }
+        h2 { font-size: 1.25rem; line-height: 1.2; }
+        .directory h2 { margin: 0 0 .7rem; }
+        .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
         .card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            border: 1px solid var(--frame);
+            background: var(--tint);
+            color: var(--ink);
+            text-decoration: none;
         }
-
-        .card-header {
-            margin-bottom: 1.25rem;
+        .card h3 {
             display: flex;
             align-items: center;
             justify-content: space-between;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* Route Tester Table */
-        .route-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.25rem;
-            margin-top: 1rem;
-        }
-
-        .route-item {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.25rem;
-            background: #f8fafc;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .route-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
-        }
-
-        .route-method {
-            display: inline-block;
-            background: #dcfce7;
-            color: #15803d;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-        }
-
-        .route-path {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-bottom: 0.5rem;
-            word-break: break-all;
-        }
-
-        .route-desc {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-        }
-
-        .btn-test {
-            display: inline-block;
-            background: var(--primary);
-            color: white;
-            padding: 0.4rem 0.9rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        .btn-test:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Modules Preview */
-        .modules-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.25rem;
-        }
-
-        .module-box {
-            padding: 1.25rem;
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-        }
-
-        .module-icon {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .module-box h4 {
+            gap: .6rem;
+            min-height: 44px;
+            padding: .45rem .85rem;
+            margin: 0;
+            border-bottom: 1px solid var(--frame);
+            background: white;
             font-size: 1rem;
-            margin-bottom: 0.25rem;
+            line-height: 1.25;
+        }
+        .card h3 span { color: var(--link); }
+        .card p { margin: 0; padding: .7rem .85rem .9rem; }
+        .card:hover h3 { text-decoration: underline; }
+        .alumni { --tint: var(--alumni); }
+        .announcements { --tint: var(--announcements); }
+        .jobs { --tint: var(--jobs); }
+        .applications { --tint: var(--applications); }
+
+        .info {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: .8rem 1.2rem;
+            padding: .85rem 1rem;
+            border: 1px solid var(--frame);
+            background: white;
+        }
+        .info h2 { margin: 0; font-size: 1rem; }
+        .info-content { display: grid; perspective: 50rem; }
+        .info-content p { margin: 0; }
+        .info-content > p + p { margin-top: .45rem; }
+        .info-content .is-turning { margin-top: 0; animation: turn-in .48s ease-out both; }
+        @keyframes turn-in {
+            from { opacity: 0; transform: rotateY(var(--turn)) translateY(4px); }
+        }
+        .controls { display: flex; align-items: center; gap: .45rem; }
+        .position { min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; font-size: .85rem; }
+        .controls button {
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--frame);
+            border-radius: 0;
+            background: var(--paper);
+            color: var(--forest);
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+        .controls button:hover { background: var(--lime); }
+        footer { border-top: 1px solid var(--frame); color: var(--muted); font-size: .9rem; }
+
+        @media (max-width: 48rem) {
+            body { border-width: 4px; }
+            .wrap { width: calc(100% - 2rem); }
+            .hero { grid-template-columns: minmax(0, 1fr); }
+            .campus { min-height: 0; aspect-ratio: 16 / 9; }
+            .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .info { grid-template-columns: 1fr auto; }
+            .info-content { grid-column: 1 / -1; grid-row: 2; }
         }
 
-        .module-box p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        /* Footer */
-        footer {
-            background: #ffffff;
-            border-top: 1px solid var(--border);
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.875rem;
-        }
-
-        @media (max-width: 640px) {
-            .hero h1 { font-size: 2rem; }
-            .nav-links { display: none; }
-        }
+        @media (max-width: 25rem) { .cards { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) { .info-content .is-turning { animation: none; } }
     </style>
 </head>
 <body>
-
-    <!-- Header / Navbar -->
-    <header>
-        <div class="nav-container">
-            <a href="/" class="logo">
-                🎓 Alumni Portal
+    <a class="skip" href="#main">İçeriğe geç</a>
+    <header class="sans">
+        <div class="wrap masthead">
+            <a class="brand" href="{% url 'home' %}" aria-current="page">
+                <span class="mark" aria-hidden="true">A</span> Alumni Portal
             </a>
-            <ul class="nav-links">
-                <li><a href="/">Ana Sayfa</a></li>
-                <li><a href="/about/">Hakkımızda</a></li>
-                <li><a href="/users/">Kullanıcılar (/users)</a></li>
-                <li><a href="/announcements/">Duyurular (/announcements)</a></li>
-                <li><a href="/jobs/">Kariyer & İlanlar (/jobs)</a></li>
-                <li><a href="/applications/">Başvurular (/applications)</a></li>
-                <li><a href="/api/swagger/" target="_blank">Swagger Docs ↗</a></li>
-                <li><a href="#routes">Aktif Rotalar</a></li>
-                <li><span class="badge-status">Canlı Sürüm v1.2</span></li>
-            </ul>
+            <nav aria-label="Ana gezinme">
+                <a href="{% url 'users_page' %}">Mezunlar</a>
+                <a href="{% url 'announcements_page' %}">Duyurular</a>
+                <a href="{% url 'jobs_page' %}">İş ilanları</a>
+                <a href="{% url 'applications_page' %}">Başvurular</a>
+                <a href="{% url 'about' %}">Hakkımızda</a>
+            </nav>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-container">
-            <h1>Alumni Portal</h1>
-            <p>Mezunlar, öğrenciler ve üniversite arasında güçlü bir bağ kuran yeni nesil yönetim ve kariyer platformu.</p>
-            <div class="tags">
-                <span class="tag">🐍 Python 3.13</span>
-                <span class="tag">⚡ Django 6.1</span>
-                <span class="tag">🗄️ SQLite</span>
-                <span class="tag">📚 Web Programming</span>
+    <main id="main" class="wrap">
+        <section class="hero" aria-labelledby="welcome">
+            <div class="intro">
+                <h1 id="welcome">Üniversitenle <span>bağını sürdür.</span></h1>
+                <p>Mezun profillerini keşfet, kampüs haberlerini takip et ve yeni kariyer fırsatları bul.</p>
+                <a class="button sans" href="{% url 'jobs_page' %}">İş ve staj ilanlarını gör <span aria-hidden="true">↗</span></a>
             </div>
-        </div>
-    </section>
+            <figure class="campus">
+                <img src="{% static 'portal/campus.webp' %}" alt="Kampüs avlusunda birlikte yürüyen üç üniversiteli" fetchpriority="high">
+            </figure>
+        </section>
 
-    <!-- Main Content -->
-    <main class="main-container">
-
-        <!-- Route Testing Panel -->
-        <section id="routes" class="card">
-            <div class="card-header">
-                <h2 class="card-title">🚀 Aktif Rota (Route) Test Paneli</h2>
-                <span class="badge-status">Web Programming Ders Uygulaması</span>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.95rem;">
-                Ders kapsamında yazılan ve çalışan rotaları aşağıdaki bağlantılardan hemen test edebilirsiniz:
-            </p>
-
-            <div class="route-grid">
-                <!-- Route 1 -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/</div>
-                    <div class="route-desc">Ana sayfa (Home Page) şablonu.</div>
-                    <a href="/" class="btn-test">Yenile ↻</a>
-                </div>
-
-                <!-- Route About -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/about/</div>
-                    <div class="route-desc">Hakkımızda sayfası şablonu.</div>
-                    <a href="/about/" class="btn-test">Ziyaret Et ↗</a>
-                </div>
-
-                <!-- Route 2 -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/hello/</div>
-                    <div class="route-desc">Sabit rota testi. "Hello, World!" döner.</div>
-                    <a href="/hello/" target="_blank" class="btn-test">Test Et ↗</a>
-                </div>
-
-                <!-- Route 3 -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/hello/&lt;name&gt;/</div>
-                    <div class="route-desc">Dinamik isim parametresi. "Hello, {name}!" döner.</div>
-                    <a href="/hello/Ahmet/" target="_blank" class="btn-test">Test Et (/hello/Ahmet/) ↗</a>
-                </div>
-
-                <!-- Route 4 -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/sum/&lt;num1&gt;/&lt;num2&gt;/</div>
-                    <div class="route-desc">İki sayıyı dinamik toplayan rota.</div>
-                    <a href="/sum/15/25/" target="_blank" class="btn-test">Test Et (/sum/15/25/) ↗</a>
-                </div>
-
-                <!-- Route 5: Health Check API -->
-                <div class="route-item">
-                    <span class="route-method">GET</span>
-                    <div class="route-path">/api/healt/</div>
-                    <div class="route-desc">Sistem durum kontrolü (Health Check). JSON yanıt döner.</div>
-                    <a href="/api/healt/" target="_blank" class="btn-test">Test Et (/api/healt/) ↗</a>
-                </div>
-
-                <!-- Route 6: Users REST API & Management -->
-                <div class="route-item">
-                    <span class="route-method" style="background: #e0f2fe; color: #0369a1;">GET, POST, PUT, PATCH, DELETE</span>
-                    <div class="route-path">/api/users/ &bull; /api/users/&lt;id&gt;/</div>
-                    <div class="route-desc">Tam CRUD REST API: GET (listele), POST (ekle), PUT (tam güncelle), PATCH (kısmi güncelle), DELETE (sil).</div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="/api/users/" target="_blank" class="btn-test">JSON Listele (GET) ↗</a>
-                        <a href="/users/" class="btn-test" style="background: #475569;">Yönetim & Form Paneli ↗</a>
-                    </div>
-                </div>
-
-                <!-- Route 7: Swagger API Documentation -->
-                <div class="route-item">
-                    <span class="route-method" style="background: #fef08a; color: #854d0e;">GET</span>
-                    <div class="route-path">/api/swagger/</div>
-                    <div class="route-desc">İnteraktif OpenAPI 3.0 / Swagger UI arayüzü ve canlı test konsolu.</div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="/api/swagger/" target="_blank" class="btn-test">Swagger UI Aç ↗</a>
-                        <a href="/api/swagger.json" target="_blank" class="btn-test" style="background: #475569;">swagger.json ↗</a>
-                    </div>
-                </div>
-
-                <!-- Route 8: Job Postings (Kariyer & İş İlanları) -->
-                <div class="route-item" style="border-color: #bae6fd; background: #f0f9ff;">
-                    <span class="route-method" style="background: #0284c7; color: #ffffff;">WEB & REST API (Direct & Nested)</span>
-                    <div class="route-path">/jobs/ &bull; /api/jobs/ &bull; /users/&lt;id&gt;/jobs/</div>
-                    <div class="route-desc">Kariyer & İş İlanları Panosu: Kurumsal ve mezun ilanları, filtreleme, hızlı başvuru ve RESTful CRUD.</div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="/jobs/" class="btn-test" style="background: #0284c7;">Kariyer Panosu (UI) ↗</a>
-                        <a href="/api/jobs/" target="_blank" class="btn-test" style="background: #475569;">JSON API (/api/jobs/) ↗</a>
-                    </div>
-                </div>
-
-                <!-- Route 9: Applications (İş & Staj Başvuruları) -->
-                <div class="route-item" style="border-color: #fed7aa; background: #fffaf5;">
-                    <span class="route-method" style="background: #ea580c; color: #ffffff;">WEB & REST API (Direct & Nested)</span>
-                    <div class="route-path">/applications/ &bull; /api/applications/ &bull; /jobs/&lt;id&gt;/applications/</div>
-                    <div class="route-desc">Başvuru Takip Panosu: Durum rozetleri (PENDING, IN_REVIEW, ACCEPTED, REJECTED), CV görüntüleme ve mükerrer başvuru koruması.</div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="/applications/" class="btn-test" style="background: #ea580c;">Başvuru Paneli (UI) ↗</a>
-                        <a href="/api/applications/" target="_blank" class="btn-test" style="background: #475569;">JSON API ↗</a>
-                    </div>
-                </div>
-
+        <section class="directory" aria-labelledby="portal-sections">
+            <h2 id="portal-sections">Portal bölümleri</h2>
+            <div class="cards">
+                <a class="card alumni" href="{% url 'users_page' %}">
+                    <h3>Mezunlar <span aria-hidden="true">↗</span></h3>
+                    <p>Mezun profillerini incele.</p>
+                </a>
+                <a class="card announcements" href="{% url 'announcements_page' %}">
+                    <h3>Duyurular <span aria-hidden="true">↗</span></h3>
+                    <p>Üniversite ve topluluk haberlerini oku.</p>
+                </a>
+                <a class="card jobs" href="{% url 'jobs_page' %}">
+                    <h3>İş ve staj ilanları <span aria-hidden="true">↗</span></h3>
+                    <p>Açık pozisyonları incele veya ilan yayımla.</p>
+                </a>
+                <a class="card applications" href="{% url 'applications_page' %}">
+                    <h3>Başvurular <span aria-hidden="true">↗</span></h3>
+                    <p>İlanlara yapılan başvuruları takip et.</p>
+                </a>
             </div>
         </section>
 
-        <!-- Project Roadmap / Planned Modules -->
-        <section id="modules" class="card">
-            <div class="card-header">
-                <h2 class="card-title">📌 Proje Modülleri (Alumni Portal Mimarisi)</h2>
+        <section class="info" aria-labelledby="info-title">
+            <h2 id="info-title">Portal hakkında</h2>
+            <div id="portal-notes" class="info-content" aria-live="polite" aria-atomic="true">
+                <p>Alumni Portal, mezunları ve öğrencileri üniversite çevresinde buluşturan bir Web Programlama projesidir.</p>
+                <p>Mezunlar iş ve staj fırsatlarını paylaşabilir. Öğrenciler ve mezunlar ilanlara portal üzerinden başvurabilir.</p>
+                <p>Projenin amacı ve teknik altyapısı hakkında daha fazlasını <a href="{% url 'about' %}">Hakkımızda sayfasında</a> öğren.</p>
             </div>
-            <div class="modules-grid">
-                <div class="module-box" style="border-color: #86efac; background: #f0fdf4;">
-                    <div class="module-icon">👥</div>
-                    <h4>Mezun Dizini <span style="font-size: 0.7rem; background: #22c55e; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (86 Mezun)</span></h4>
-                    <p>Mezunları mezuniyet yılı, bölüm, sektör ve konuma göre listeleme ve arama.</p>
-                    <a href="/users/" style="font-size: 0.85rem; color: #15803d; font-weight: 600; text-decoration: none;">Mezunları Gör &rarr;</a>
-                </div>
-                <div class="module-box" style="border-color: #7dd3fc; background: #f0f9ff;">
-                    <div class="module-icon">💼</div>
-                    <h4>Kariyer & İş İlanları <span style="font-size: 0.7rem; background: #0284c7; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (24 İlan)</span></h4>
-                    <p>Mezunların şirketlerindeki staj ve iş fırsatlarını öğrencilerle paylaşması ve tek tıkla başvuru.</p>
-                    <a href="/jobs/" style="font-size: 0.85rem; color: #0369a1; font-weight: 600; text-decoration: none;">Kariyer Panosuna Git &rarr;</a>
-                </div>
-                <div class="module-box" style="border-color: #fed7aa; background: #fffaf5;">
-                    <div class="module-icon">📋</div>
-                    <h4>Başvuru Yönetimi <span style="font-size: 0.7rem; background: #ea580c; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif</span></h4>
-                    <p>İlanlara gelen başvuruları inceleme, aday CV'lerini değerlendirme ve kabul/ret durum takibi.</p>
-                    <a href="/applications/" style="font-size: 0.85rem; color: #c2410c; font-weight: 600; text-decoration: none;">Başvuruları Yönet &rarr;</a>
-                </div>
-                <div class="module-box">
-                    <div class="module-icon">📅</div>
-                    <h4>Etkinlikler & Duyurular <span style="font-size: 0.7rem; background: #64748b; color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px;">Aktif (24 Duyuru)</span></h4>
-                    <p>Yıllık buluşmalar, teknik webinarlar ve kampüs etkinlikleri.</p>
-                    <a href="/announcements/" style="font-size: 0.85rem; color: #475569; font-weight: 600; text-decoration: none;">Duyuruları Oku &rarr;</a>
-                </div>
+            <div class="controls sans" hidden>
+                <button data-direction="-1" type="button" aria-label="Önceki bilgi" aria-controls="portal-notes">←</button>
+                <span class="position" aria-hidden="true"></span>
+                <button data-direction="1" type="button" aria-label="Sonraki bilgi" aria-controls="portal-notes">→</button>
             </div>
         </section>
-
     </main>
 
-    <!-- Footer -->
     <footer>
-        <p><strong>Alumni Portal</strong> &bull; Web Programming Dönem Projesi</p>
-        <p style="margin-top: 0.25rem; font-size: 0.8rem;">Geliştirici: Ahmet Baha Büyükadem &bull; Django & SQLite</p>
+        <div class="wrap footer">
+            <span>Alumni Portal · Web Programlama</span>
+            <nav aria-label="Ek bağlantılar">
+                <a href="{% url 'about' %}">Hakkımızda</a>
+                <a href="{% url 'swagger_ui' %}">API belgeleri</a>
+            </nav>
+        </div>
     </footer>
 
+    <script>
+        const notes = [...document.querySelectorAll("#portal-notes > p")];
+        const controls = document.querySelector(".controls");
+        const position = controls.querySelector(".position");
+        let activeIndex = 0;
+
+        for (const note of notes.slice(1)) {
+            note.hidden = true;
+        }
+        position.textContent = `1 / ${notes.length}`;
+        controls.hidden = false;
+
+        for (const button of controls.querySelectorAll("button")) {
+            button.addEventListener("click", () => {
+                const direction = Number(button.dataset.direction);
+                notes[activeIndex].hidden = true;
+                notes[activeIndex].classList.remove("is-turning");
+
+                activeIndex = (activeIndex + direction + notes.length) % notes.length;
+                const activeNote = notes[activeIndex];
+                activeNote.style.setProperty("--turn", `${direction * 65}deg`);
+                activeNote.hidden = false;
+                activeNote.classList.add("is-turning");
+                position.textContent = `${activeIndex + 1} / ${notes.length}`;
+            });
+        }
+    </script>
 </body>
 </html>
